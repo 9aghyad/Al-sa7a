@@ -1,3 +1,14 @@
-Arena v3.0.6
+# الساحة — النسخة الموحّدة
 
-Fixed UI button execution and Socket.IO load order. The browser UI handlers are explicitly exposed on window.
+- `public/index.html` هو ملف الواجهة الوحيد؛ لا يوجد `app.js`.
+- Family Feud: A###
+  - مقدم + شاشة + لاعبين: ضغط 5 ثواني، دبل 10 ثواني، إجابة شفهية وتحكم المقدم.
+  - شاشة + لاعبين: إجابة كتابية 10 ثواني + دبل كتابي + مطابقة ذكية.
+  - لاعبين فقط: إجابة كتابية + دبل.
+- خمنها: B### مع الفئات والتخمين الذكي.
+- الألعاب التجريبية: السوق C###، المفخخة D###، آخر واحد واقف E###، البنك F###، المليون G###.
+
+## Render
+Build: `npm install`
+Start: `npm start`
+Type: Web Service

@@ -1,6 +1,10 @@
 services:
   - type: web
-    name: al-sa7a
+    name: family-feud-realtime
     env: node
+    plan: free
     buildCommand: npm install
     startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
