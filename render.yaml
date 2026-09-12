@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: family-feud-realtime
+    name: al-sa7a
     env: node
     plan: free
     buildCommand: npm install
