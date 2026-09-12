@@ -3,7 +3,7 @@
   "version": "3.0.1",
   "private": true,
   "scripts": {
-    "start": "node bootstrap.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.21.2",

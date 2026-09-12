@@ -4,7 +4,7 @@ const crypto=require('crypto');
 const {Server}=require('socket.io');
 const QRCode=require('qrcode');
 const app=express(),server=http.createServer(app),io=new Server(server,{perMessageDeflate:false});
-app.set('trust proxy',1);app.use(express.json({limit:'32kb'}));app.use(express.static('public',{maxAge:0,etag:false}));
+app.set('trust proxy',1);app.use(express.json({limit:'32kb'}));app.use((req,res,next)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0');next()});app.use(express.static('public',{maxAge:0,etag:false}));
 app.get(['/player'],(_q,r)=>r.sendFile(require('path').join(__dirname,'public','index.html')));
 app.get('/health',(_q,r)=>r.json({ok:true,service:'arena-party-games',version:'3.0.0'}));
 app.get('/qr/:code',async(req,res)=>{try{const c=String(req.params.code||'').toUpperCase();const url=`${req.protocol}://${req.get('host')}/player?join=${encodeURIComponent(c)}`;const png=await QRCode.toBuffer(url,{width:640,margin:2});res.type('png').send(png)}catch(e){res.status(500).end()}});

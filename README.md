@@ -1,15 +1,9 @@
-# الساحة — Arena v3.0.1
+# الساحة — v3.0.2 fixed
 
-نسخة Web Service لـ Render.
+نسخة تشغيل ثابتة لـ Render.
 
-## التشغيل
-`npm install`
-ثم `npm start`
-
-يوجد `bootstrap.js` كشبكة أمان: إذا كانت dependencies ناقصة وقت التشغيل، يحاول تثبيتها تلقائيًا ثم يشغّل السيرفر.
-
-## Render
-- Service Type: Web Service
-- Build Command: `npm install`
-- Start Command: `npm start`
-- Root Directory: فارغ إذا كانت الملفات في جذر المستودع
+- ارفع الملفات من جذر ZIP.
+- Render: Web Service.
+- Build: npm install
+- Start: npm start
+- Root Directory: فارغ.
