@@ -2,9 +2,5 @@ services:
   - type: web
     name: al-sa7a
     env: node
-    plan: free
     buildCommand: npm install
     startCommand: npm start
-    envVars:
-      - key: DATABASE_URL
-        sync: false
