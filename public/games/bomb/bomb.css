@@ -79,3 +79,46 @@ body{background:radial-gradient(circle at 50% -15%,rgba(255,69,86,.16),transpare
 .previewAnswers{display:none!important}
 .questionStats.visibleStats{opacity:1!important;animation:none!important}
 .questionStage .stageCountdown b{color:var(--bm-gold)}
+
+/* v12: compact single-screen player arena */
+html,body{margin:0;min-height:100%;background:var(--bm-bg);overflow-x:hidden}
+.playerView{height:100dvh;min-height:0;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;gap:7px;padding:8px max(8px,2vw)!important}
+.playerView .bombHeader{flex:0 0 auto;margin-bottom:0;height:52px}
+.playerView .brandMark{width:42px;height:42px;font-size:23px}
+.playerView .bombHeader b{font-size:17px}
+.playerView .playerTop{flex:0 0 auto;margin:0;min-height:24px}
+.playerView .bombMain{flex:1 1 auto;min-height:0;display:flex!important;flex-direction:column;gap:7px;overflow:hidden;grid-template-columns:none!important}
+.playerView .questionBlock{flex:0 0 auto;padding:9px 14px;margin:0;border-radius:16px}
+.playerView .questionBlock span{font-size:10px}
+.playerView .questionBlock h1{font-size:clamp(20px,3.7vw,32px);line-height:1.18;margin:3px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.playerView .bombBoard{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0;max-height:145px;overflow:hidden}
+.playerView .bombTile,.playerView .bombTile .questionFace,.playerView .bombTile .answerFace{min-height:68px;height:68px;border-radius:12px}
+.playerView .bombTile .questionFace span{font-size:38px}
+.playerView .bombTile .questionFace small{font-size:9px}
+.playerView .bombTile .answerFace b{font-size:13px}
+.playerView .bombTile .answerFace small{font-size:9px}
+.playerView .answerCard{flex:1 1 auto;min-height:0!important;padding:10px 12px!important;border-radius:18px;justify-content:center;overflow:hidden}
+.playerView .turnBadge{font-size:14px;padding:7px 11px}
+.playerView .hugeTimer{font-size:clamp(54px,12vw,92px);line-height:.8}
+.playerView .fuseLine{height:7px;margin:5px auto 7px}
+.playerView .typedPanel{margin-top:4px;width:100%}
+.playerView .typedTitle{font-size:14px;margin-bottom:5px}
+.playerView .inputRow{grid-template-columns:1fr 112px;gap:6px}
+.playerView .answerInput{min-height:46px!important;height:46px;font-size:19px!important}
+.playerView .sendAnswer{min-height:46px;padding:0 10px}
+.playerView .typedPanel>small{font-size:10px;margin-top:4px}
+.playerView .submitStatus{min-height:16px;font-size:11px;color:#9ff0c5;margin-top:2px}
+.playerView .leaveBtn{flex:0 0 auto;margin:0 auto!important;padding:7px 12px;font-size:11px}
+.playerView .bombTile:nth-child(4){grid-column:1}
+@media(min-width:700px){.playerView{padding:10px 18px!important}.playerView .bombBoard{grid-template-columns:repeat(5,minmax(0,1fr));max-height:none}.playerView .bombTile,.playerView .bombTile .questionFace,.playerView .bombTile .answerFace{height:82px;min-height:82px}.playerView .answerCard{max-width:900px;width:100%;margin:0 auto}.playerView .questionBlock{max-width:1200px;width:100%;margin-inline:auto}}
+@media(max-width:380px){.playerView .bombBoard{grid-template-columns:repeat(2,minmax(0,1fr));max-height:138px}.playerView .bombTile,.playerView .bombTile .questionFace,.playerView .bombTile .answerFace{height:64px;min-height:64px}.playerView .bombTile:nth-child(4){grid-column:auto}.playerView .answerInput{font-size:17px!important}.playerView .inputRow{grid-template-columns:1fr 98px}}
+
+/* v12 question stage compact + stable 10-second preview */
+.playerView .questionStage{min-height:0!important;flex:1 1 auto;padding:12px 14px!important;gap:3px;border-radius:18px}
+.playerView .questionStage .questionPulseIcon{font-size:38px}
+.playerView .questionStage .questionStageLabel{font-size:9px;letter-spacing:2px}
+.playerView .questionStage h2{font-size:clamp(21px,5vw,34px);margin:3px auto 7px;max-width:100%;line-height:1.22;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.playerView .questionStage .questionStats{opacity:1!important;animation:none!important;gap:5px}
+.playerView .questionStage .questionStats span{font-size:10px;padding:6px 8px}
+.playerView .questionStage .stageCountdown{font-size:11px;margin-top:7px}
+.playerView .questionStage .stageCountdown b{font-size:16px}
