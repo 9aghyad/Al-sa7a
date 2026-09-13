@@ -57,3 +57,4 @@ body{background:radial-gradient(circle at 50% -15%,rgba(255,69,86,.16),transpare
 @media(max-width:600px){.bombApp{width:96vw}.bombBoard{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bombTile,.questionFace,.answerFace{min-height:112px}.questionStage{min-height:260px;padding:20px}.questionPulseIcon{font-size:55px}.questionStage h2{font-size:26px}.questionStats{gap:6px}.questionStats span{padding:8px 10px}.bombHeader{margin-bottom:10px}}
 
 .resumeBombCard{margin:14px 18px 0;padding:16px 18px;border-radius:20px;background:rgba(68,214,153,.07);border:1px solid rgba(68,214,153,.22);display:flex;align-items:center;gap:12px;flex-wrap:wrap}.resumeBombCard b{color:#8ff0c2}.resumeBombCard small{color:var(--bm-muted);flex:1}.resumeBombCard .bigGameAction{width:auto;margin:0}@media(max-width:600px){.resumeBombCard .bigGameAction{width:100%}}
+.changeQBtn{background:linear-gradient(135deg,#8b5cf6,#6d5dfc)!important;color:#fff!important;font-weight:1000}
