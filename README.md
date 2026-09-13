@@ -18,3 +18,11 @@
 - إضافة زر بدء فعلي للمقدم في النمط الأول، مع منع البدء قبل وجود الفريقين.
 - إصلاح انتقال النمط الأول بين الجولات بحيث يعود إلى مرحلة BUZZ بدل إعطاء لاعب الإجابة مباشرة.
 - منع فتح شاشة عرض في نمط اللاعبين فقط.
+
+## Mofakha v7 fixes
+- Mode 1 creates the room as the presenter/host, not as a player.
+- Mode 2/3 create the room as the first player.
+- Direct navigation to the bomb player page avoids the old join-page handshake race.
+- Bomb timeout now applies a -20 point penalty and one strike in every mode, including presenter mode, then advances the turn.
+- Timeout result is shown explicitly instead of appearing as a silent no-op.
+- Duplicate submit is blocked client-side after sending.
