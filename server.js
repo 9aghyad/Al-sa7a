@@ -3,7 +3,7 @@ const app=express(),server=http.createServer(app),io=new Server(server,{perMessa
 app.get('/games/family-feud/',(_,r)=>r.sendFile(path.join(__dirname,'public','games','family-feud','index.html')));
 app.get('/games/family-feud/presenter',(_,r)=>r.sendFile(path.join(__dirname,'public','games','family-feud','presenter.html')));
 app.get('/games/family-feud/display',(_,r)=>r.sendFile(path.join(__dirname,'public','games','family-feud','display.html')));
-app.get('/games/family-feud/players',(_,r)=>r.sendFile(path.join(__dirname,'public','games','family-feud','players.html')));app.get('/games/bomb/roles',(_,r)=>r.sendFile(path.join(__dirname,'public','games','bomb','roles.html')));app.get('/games/bomb/presenter',(_,r)=>r.sendFile(path.join(__dirname,'public','games','bomb','presenter.html')));app.get('/games/bomb/display',(_,r)=>r.sendFile(path.join(__dirname,'public','games','bomb','display.html')));app.get('/games/bomb/players',(_,r)=>r.sendFile(path.join(__dirname,'public','games','bomb','players.html')));
+app.get('/games/family-feud/players',(_,r)=>r.sendFile(path.join(__dirname,'public','games','family-feud','players.html')));app.get(['/games/bomb/roles','/games/bomb/presenter','/games/bomb/display','/games/bomb/players'],(_,r)=>r.sendFile(path.join(__dirname,'public','index.html')));
 const games=new Map();const SESSION_FILE=path.join(__dirname,'data','sessions.json');const SESSION_RETENTION_MS=24*60*60*1000;const DISCONNECT_GRACE_MS=5*60*1000;
 function persistGames(){try{fs.mkdirSync(path.dirname(SESSION_FILE),{recursive:true});const arr=[...games.values()].map(g=>({...g}));fs.writeFileSync(SESSION_FILE,JSON.stringify(arr));}catch(e){console.error('session save failed',e.message)}}
 function rekey(obj,oldId,newId){if(!obj||oldId===newId)return;if(Object.prototype.hasOwnProperty.call(obj,oldId)){obj[newId]=obj[oldId];delete obj[oldId]}}
@@ -42,45 +42,38 @@ function addPlayer(g,s,name,team,token){const cleanToken=String(token||'');const
 function startFF(g){let choices=g.bank.map((_,i)=>i).filter(i=>!g.usedQuestionIndexes.includes(i));if(!choices.length){g.usedQuestionIndexes=[];choices=g.bank.map((_,i)=>i)}const idx=choices[Math.floor(Math.random()*choices.length)];g.usedQuestionIndexes.push(idx);const q=g.bank[idx];g.currentRound++;g.questionIndex=idx;g.question=q.q;g.answers=q.a.map(x=>({text:x[0],points:x[1],revealed:false,awarded:false}));g.phase='question';g.lock=null;g.answerLock=null;g.teams.forEach(t=>{t.strikes=0;t.doubleActive=false;t.doublePlayer=''});broadcast(g)}
 function ffHost(s,g){return s.data?.game===g.code&&s.data.role==='presenter'&&['1','2'].includes(g.mode)}
 const bombQs=[
-{q:'إذا انقطع هاتفك قبل موعد مهم، ما أول شيء تبحث عنه؟',p:20,list:[['شاحن',false,20],['جوال',false,20],['كمبيوتر',false,20],['مقبس',false,20],['بطارية',true,-30]],extra:['كابل','باوربانك','متجر']},
-{q:'إذا توقف المصعد فجأة، ما أول تصرف منطقي؟',p:20,list:[['طوارئ',false,20],['هاتف',false,20],['انتظار',false,20],['مساعدة',false,20],['صراخ',true,-30]],extra:['هدوء','زر','حارس']},
-{q:'إذا تأخرت عشر دقائق عن موعدك، ما الشيء الذي تختصره غالبًا؟',p:20,list:[['فطور',false,20],['ملابس',false,20],['تصفيف',false,20],['ترتيب',false,20],['استحمام',true,-30]],extra:['قهوة','تصوير','راحة']},
-{q:'إذا انقطعت الكهرباء في جلسة، ما أول شيء تبحث عنه؟',p:20,list:[['كشاف',false,20],['شمعة',false,20],['جوال',false,20],['بطارية',false,20],['ريموت',true,-30]],extra:['مصباح','ولاعة','شاحن']},
-{q:'إذا وجدت محفظة في مكان عام، ماذا تفعل أولًا؟',p:25,list:[['صاحب',false,25],['هوية',false,25],['شرطة',false,25],['تسليم',false,25],['مال',true,-35]],extra:['حارس','أمانة','اتصال']},
-{q:'إذا وجدت طعامًا قديمًا في الثلاجة، ما أول شيء تفحصه؟',p:20,list:[['رائحة',false,20],['تاريخ',false,20],['لون',false,20],['ملصق',false,20],['تذوق',true,-30]],extra:['علبة','تاريخها','ثلاجة']},
-{q:'إذا طلب منك صديق اختيار فيلم بسرعة، أي نوع قد تختار؟',p:20,list:[['كوميديا',false,20],['أكشن',false,20],['رعب',false,20],['دراما',false,20],['ملل',true,-30]],extra:['خيال','وثائقي','أنيمي']},
-{q:'إذا ضاع منك شيء صغير في غرفة، أين تبحث أولًا؟',p:15,list:[['سرير',false,15],['وسادة',false,15],['طاولة',false,15],['جيوب',false,15],['ثلاجة',true,-25]],extra:['حقيبة','أرض','خزانة']},
-{q:'إذا وصلت لمطعم مزدحم جدًا، ماذا تختار غالبًا؟',p:20,list:[['انتظار',false,20],['سفري',false,20],['بديل',false,20],['اتصال',false,20],['حجز',true,-30]],extra:['توصيل','مغادرة','سيارة']},
-{q:'إذا نسيت اسم شخص قابلته قبل قليل، ما الحل الأسهل؟',p:20,list:[['سؤال',false,20],['تقديم',false,20],['انتظار',false,20],['تلميح',false,20],['عشوائي',true,-30]],extra:['محادثة','صديق','ذاكرة']},
-{q:'إذا كان هاتفك على واحد بالمئة خارج البيت، ما الأولوية؟',p:20,list:[['شاحن',false,20],['مقبس',false,20],['طاقة',false,20],['إضاءة',false,20],['لعبة',true,-30]],extra:['باوربانك','إغلاق','بطارية']},
-{q:'إذا وصلتك رسالة عن طرد لم تطلبه، ما أول خطوة؟',p:25,list:[['مرسل',false,25],['طلبات',false,25],['رابط',false,25],['متجر',false,25],['بطاقة',true,-35]],extra:['حذف','تطبيق','تحقق']},
-{q:'إذا تأخر أصدقاؤك عن موعد، كيف تقضي وقت الانتظار؟',p:15,list:[['جوال',false,15],['قهوة',false,15],['موسيقى',false,15],['قراءة',false,15],['نوم',true,-25]],extra:['مشاهدة','مشي','دردشة']},
-{q:'إذا فاز فريقك في آخر ثانية، ما أول رد فعل؟',p:20,list:[['صراخ',false,20],['قفز',false,20],['تصفيق',false,20],['احتفال',false,20],['هدوء',true,-30]],extra:['تصوير','فرح','ضحك']},
-{q:'إذا طلب منك شخص طريقًا وأنت غير متأكد، ماذا تستخدم؟',p:20,list:[['خريطة',false,20],['جوال',false,20],['سؤال',false,20],['ملاحة',false,20],['تخمين',true,-30]],extra:['اتصال','موقع','لوحة']},
-{q:'إذا نسيت كلمة مرور مهمة، ما أول حل تستخدمه؟',p:20,list:[['استعادة',false,20],['مدير',false,20],['تغيير',false,20],['بريد',false,20],['تخمين',true,-30]],extra:['ملاحظات','حساب','دعم']},
-{q:'إذا سمعت صوتًا غريبًا في المطبخ ليلًا، ماذا تفعل؟',p:25,list:[['ضوء',false,25],['جوال',false,25],['تفقد',false,25],['مساعدة',false,25],['تسلل',true,-35]],extra:['باب','هدوء','صوت']},
-{q:'إذا تأخر شخص ولم يرد على الاتصال، ما الاحتمال الأقرب؟',p:20,list:[['زحمة',false,20],['نوم',false,20],['انشغال',false,20],['نسيان',false,20],['سفر',true,-30]],extra:['بطارية','مواصلات','اجتماع']},
-{q:'إذا أعطاك صديق هدية غريبة، ماذا تفعل أولًا؟',p:20,list:[['شكر',false,20],['ضحك',false,20],['سؤال',false,20],['فتح',false,20],['رمي',true,-30]],extra:['تصوير','تجربة','حفظ']},
-{q:'إذا تغيّر الجو فجأة قبل خروجك، ماذا تراجع؟',p:15,list:[['ملابس',false,15],['مظلة',false,15],['سيارة',false,15],['حذاء',false,15],['مسبح',true,-25]],extra:['طقس','طريق','جاكيت']},
-{q:'إذا وجدت طابورًا طويلًا في متجر، ما الذي يجعلك تبقى؟',p:20,list:[['حاجة',false,20],['خصم',false,20],['سعر',false,20],['سرعة',false,20],['فضول',true,-30]],extra:['بديل','موعد','شراء']},
-{q:'إذا قال لك صديق عندي مفاجأة، ماذا تتوقع؟',p:15,list:[['هدية',false,15],['حفلة',false,15],['خبر',false,15],['رحلة',false,15],['فاتورة',true,-25]],extra:['دعوة','مقلب','احتفال']},
-{q:'إذا كان لديك رحلة طويلة بالسيارة، أي مكان تفضّل؟',p:20,list:[['نافذة',false,20],['أمام',false,20],['خلف',false,20],['مريح',false,20],['سقف',true,-30]],extra:['ممر','منفرد','وسط']},
-{q:'إذا تحول نقاش إلى جدال حاد، ما أول شيء يساعد على تهدئته؟',p:25,list:[['هدوء',false,25],['استماع',false,25],['تأجيل',false,25],['اعتذار',false,25],['صراخ',true,-35]],extra:['مزاح','انسحاب','توضيح']},
-{q:'إذا نقص مكوّن أساسي أثناء الطبخ، ماذا تفعل؟',p:20,list:[['شراء',false,20],['بديل',false,20],['تغيير',false,20],['مساعدة',false,20],['عشوائية',true,-30]],extra:['توصيل','تأجيل','حذف']},
-{q:'إذا دخلت مكانًا جديدًا ولا تعرف أحدًا، ما أول خطوة؟',p:20,list:[['تحية',false,20],['حديث',false,20],['مشاركة',false,20],['سؤال',false,20],['صراخ',true,-30]],extra:['ابتسامة','تعريف','مراقبة']},
-{q:'إذا انقطع الإنترنت أثناء مباراة مهمة، ماذا تفعل؟',p:20,list:[['راوتر',false,20],['بيانات',false,20],['انتظار',false,20],['إعادة',false,20],['رمي',true,-35]],extra:['اتصال','مزود','تطبيق']},
-{q:'إذا وصلت لمحطة الوقود واخترت وقودًا غير مناسب، ماذا تفعل؟',p:25,list:[['توقف',false,25],['مساعدة',false,25],['دليل',false,25],['موظف',false,25],['تكملة',true,-35]],extra:['وكالة','انتظار','سيارة']},
-{q:'إذا نسيت لماذا أردت الكلام في اجتماع، ماذا تفعل؟',p:15,list:[['ملاحظات',false,15],['انتظار',false,15],['سؤال',false,15],['استماع',false,15],['اختراع',true,-25]],extra:['كتابة','تأجيل','توضيح']},
-{q:'إذا واجهت خيارين صعبين في لعبة، كيف تختار؟',p:20,list:[['تفاصيل',false,20],['أمان',false,20],['سرعة',false,20],['ذوق',false,20],['عشوائية',true,-30]],extra:['استشارة','تجربة','حظ']},
-{q:'إذا تغيّرت بوابة رحلتك في المطار، ماذا تفعل؟',p:20,list:[['شاشة',false,20],['موظف',false,20],['تذكرة',false,20],['تطبيق',false,20],['تجاهل',true,-30]],extra:['مشي','سرعة','اتصال']},
-{q:'إذا بدأت لعبة جماعية لأول مرة، ما أهم شيء تريد معرفته؟',p:20,list:[['قواعد',false,20],['دور',false,20],['فوز',false,20],['وقت',false,20],['سر',true,-30]],extra:['نقاط','عقوبات','عدد']},
-{q:'إذا كان لديك قرار مهم ولا تستطيع النوم، ماذا تفعل؟',p:20,list:[['تفكير',false,20],['استشارة',false,20],['تأجيل',false,20],['كتابة',false,20],['عملة',true,-30]],extra:['بحث','استرخاء','نوم']},
-{q:'إذا وجدت رسالة قديمة تضحكك، ماذا تفعل غالبًا؟',p:15,list:[['قراءة',false,15],['إرسال',false,15],['حفظ',false,15],['مشاركة',false,15],['حذف',true,-25]],extra:['تصوير','تذكر','تجاهل']},
-{q:'إذا أردت وصف شخص دون ذكر اسمه، ما أسهل طريقة؟',p:20,list:[['شكل',false,20],['صفة',false,20],['عمل',false,20],['صوت',false,20],['هوية',true,-30]],extra:['عمر','هواية','موقف']},
-{q:'إذا كان كل شيء في مكان ما أغلى من المتوقع، ماذا تغيّر؟',p:20,list:[['طلب',false,20],['ميزانية',false,20],['مكان',false,20],['كمية',false,20],['دفع',true,-30]],extra:['عرض','بديل','مغادرة']},
-{q:'إذا وجدت صندوقًا مغلقًا وعليه تحذير، ماذا تفعل؟',p:25,list:[['تحذير',false,25],['سؤال',false,25],['تعليمات',false,25],['مسؤول',false,25],['فتح',true,-35]],extra:['ترك','مراقبة','انتظار']},
-{q:'إذا أرسلت رسالة للشخص الخطأ، ما أول تصرف؟',p:20,list:[['حذف',false,20],['اعتذار',false,20],['توضيح',false,20],['انتظار',false,20],['تغطية',true,-30]],extra:['اتصال','تصحيح','تجاهل']},
-{q:'إذا بقيت آخر قطعة حلوى والجميع يريدها، كيف تحسمها؟',p:15,list:[['تقسيم',false,15],['قرعة',false,15],['تنازل',false,15],['سؤال',false,15],['إخفاء',true,-25]],extra:['مشاركة','إعطاء','اختيار']}
+{q:'اذكر دولة بحرف الميم',p:20,list:[['مصر',false,20],['مالي',false,20],['مالطا',false,20],['ماليزيا',false,20],['مدغشقر',false,20],['المكسيك',true,-30]],extra:['موناكو','موريتانيا','موزمبيق']},
+{q:'اذكر اسمًا بحرف الباء',p:20,list:[['بدر',false,20],['باسم',false,20],['بندر',false,20],['بسام',false,20],['براء',false,20],['بلال',true,-30]],extra:['بشير','بشار','بدران']},
+{q:'اذكر حيوانًا يبدأ بحرف الألف',p:20,list:[['أسد',false,20],['أرنب',false,20],['أخطبوط',false,20],['أوزة',false,20],['أيل',false,20],['أفعى',true,-30]],extra:['أرنب بري','أسماك','أبو بريص']},
+{q:'اذكر فاكهة لونها أحمر',p:20,list:[['تفاح',false,20],['فراولة',false,20],['كرز',false,20],['بطيخ',false,20],['رمان',false,20],['توت',true,-30]],extra:['عنب أحمر','برقوق','تين']},
+{q:'اذكر شيئًا تجده في المدرسة',p:20,list:[['كتاب',false,20],['قلم',false,20],['دفتر',false,20],['سبورة',false,20],['حقيبة',false,20],['جرس',true,-30]],extra:['مقعد','معلم','مسطرة']},
+{q:'اذكر شيئًا تأخذه معك إلى البحر',p:20,list:[['منشفة',false,20],['ماء',false,20],['نظارة شمسية',false,20],['واقي شمس',false,20],['كرة',false,20],['مظلة',true,-30]],extra:['كرسي','قبعة','شبشب']},
+{q:'اذكر شيئًا موجودًا في المطبخ',p:20,list:[['ثلاجة',false,20],['فرن',false,20],['ملعقة',false,20],['قدر',false,20],['مقلاة',false,20],['غسالة',true,-30]],extra:['كوب','سكين','صحن']},
+{q:'اذكر شيئًا تستخدمه قبل النوم',p:20,list:[['فرشاة أسنان',false,20],['جوال',false,20],['وسادة',false,20],['منبه',false,20],['بطانية',false,20],['مكنسة',true,-30]],extra:['كتاب','ماء','إطفاء الأنوار']},
+{q:'اذكر شيئًا تجده في السيارة',p:20,list:[['مقود',false,20],['مقعد',false,20],['مكيف',false,20],['شاحن',false,20],['مناديل',false,20],['ثلاجة',true,-30]],extra:['ماء','راديو','عجلة احتياط']},
+{q:'اذكر لونًا يبدأ بحرف الألف',p:20,list:[['أحمر',false,20],['أزرق',false,20],['أخضر',false,20],['أصفر',false,20],['أبيض',false,20],['أسود',true,-30]],extra:['أرجواني','أزرق سماوي','أصفر فاتح']},
+{q:'اذكر دولة عربية',p:20,list:[['السعودية',false,20],['مصر',false,20],['الإمارات',false,20],['الكويت',false,20],['قطر',false,20],['الأردن',true,-30]],extra:['البحرين','عمان','لبنان']},
+{q:'اذكر شيئًا تشتريه من السوبرماركت',p:20,list:[['حليب',false,20],['خبز',false,20],['ماء',false,20],['بيض',false,20],['أرز',false,20],['تلفزيون',true,-30]],extra:['عصير','مناديل','جبن']},
+{q:'اذكر شيئًا موجودًا في غرفة النوم',p:20,list:[['سرير',false,20],['وسادة',false,20],['خزانة',false,20],['مرآة',false,20],['مصباح',false,20],['فرن',true,-30]],extra:['بطانية','تلفزيون','ستارة']},
+{q:'اذكر رياضة مشهورة',p:20,list:[['كرة قدم',false,20],['كرة سلة',false,20],['تنس',false,20],['سباحة',false,20],['جري',false,20],['شطرنج',true,-30]],extra:['ملاكمة','دراجات','كرة طائرة']},
+{q:'اذكر شيئًا تشربه في الصباح',p:20,list:[['قهوة',false,20],['ماء',false,20],['شاي',false,20],['حليب',false,20],['عصير',false,20],['شوربة',true,-30]],extra:['كابتشينو','نسكافيه','مشروب ساخن']},
+{q:'اذكر شيئًا موجودًا في الحمام',p:20,list:[['مرآة',false,20],['منشفة',false,20],['صابون',false,20],['شامبو',false,20],['فرشاة أسنان',false,20],['تلفزيون',true,-30]],extra:['دش','مغسلة','معجون أسنان']},
+{q:'اذكر شيئًا تحمله في حقيبتك',p:20,list:[['جوال',false,20],['محفظة',false,20],['مفاتيح',false,20],['شاحن',false,20],['مناديل',false,20],['مقلاة',true,-30]],extra:['قلم','عطر','سماعات']},
+{q:'اذكر شيئًا تراه في السماء',p:20,list:[['شمس',false,20],['قمر',false,20],['سحاب',false,20],['طائرة',false,20],['نجوم',false,20],['سمكة',true,-30]],extra:['طير','برق','قوس قزح']},
+{q:'اذكر شيئًا يفعله الناس في العيد',p:20,list:[['زيارة العائلة',false,20],['لبس الجديد',false,20],['العيدية',false,20],['الصلاة',false,20],['الحلويات',false,20],['الامتحان',true,-30]],extra:['التصوير','المعايدة','الضيافة']},
+{q:'اذكر شيئًا تضعه في حقيبة السفر',p:20,list:[['ملابس',false,20],['جواز السفر',false,20],['شاحن',false,20],['حذاء',false,20],['فرشاة أسنان',false,20],['ثلاجة',true,-30]],extra:['عطر','منشفة','سماعات']},
+{q:'اذكر شيئًا يستخدمه الناس لتنظيف البيت',p:20,list:[['مكنسة',false,20],['ممسحة',false,20],['منظف',false,20],['إسفنجة',false,20],['قفازات',false,20],['ملعقة',true,-30]],extra:['مكنسة كهربائية','مناديل','سائل تنظيف']},
+{q:'اذكر شيئًا موجودًا في المكتب',p:20,list:[['كمبيوتر',false,20],['قلم',false,20],['أوراق',false,20],['كرسي',false,20],['طابعة',false,20],['ثلاجة',true,-30]],extra:['هاتف','دفتر','دباسة']},
+{q:'اذكر وسيلة نقل',p:20,list:[['سيارة',false,20],['طائرة',false,20],['قطار',false,20],['حافلة',false,20],['دراجة',false,20],['مصعد',true,-30]],extra:['سفينة','تاكسي','دراجة نارية']},
+{q:'اذكر شيئًا تحبه الأطفال',p:20,list:[['ألعاب',false,20],['حلويات',false,20],['كرة',false,20],['آيس كريم',false,20],['رسوم متحركة',false,20],['فاتورة',true,-30]],extra:['هدايا','حديقة','دراجة']},
+{q:'اذكر شيئًا تفعله عندما تشعر بالملل',p:20,list:[['تصفح الجوال',false,20],['مشاهدة التلفزيون',false,20],['النوم',false,20],['اللعب',false,20],['الخروج',false,20],['تنظيف النوافذ',true,-30]],extra:['قراءة','الأكل','التحدث مع صديق']},
+{q:'اذكر شيئًا موجودًا في الثلاجة',p:20,list:[['ماء',false,20],['حليب',false,20],['خضار',false,20],['عصير',false,20],['جبن',false,20],['صابون',true,-30]],extra:['فاكهة','بيض','لبن']},
+{q:'اذكر شيئًا تأخذه معك إلى المدرسة',p:20,list:[['حقيبة',false,20],['كتاب',false,20],['دفتر',false,20],['قلم',false,20],['مقلمة',false,20],['مقلاة',true,-30]],extra:['مسطرة','ماء','وجبة']},
+{q:'اذكر شيئًا تراه في الحديقة',p:20,list:[['شجرة',false,20],['عشب',false,20],['زهور',false,20],['أرجوحة',false,20],['مقعد',false,20],['ثلاجة',true,-30]],extra:['أطفال','كرة','نافورة']},
+{q:'اذكر شيئًا يشتريه الناس في المول',p:20,list:[['ملابس',false,20],['أحذية',false,20],['عطر',false,20],['هدايا',false,20],['إلكترونيات',false,20],['خضار',true,-30]],extra:['إكسسوارات','ألعاب','حقائب']},
+{q:'اذكر شيئًا تأكله في الفطور',p:20,list:[['بيض',false,20],['خبز',false,20],['جبن',false,20],['فول',false,20],['تمر',false,20],['بيتزا',true,-30]],extra:['مربى','فطائر','حبوب']},
+{q:'اذكر شيئًا تستخدمه للكتابة',p:20,list:[['قلم',false,20],['رصاص',false,20],['قلم حبر',false,20],['طبشور',false,20],['قلم تلوين',false,20],['ملعقة',true,-30]],extra:['دفتر','ورق','لوح']},
+{q:'اذكر شيئًا موجودًا في الصالة',p:20,list:[['كنبة',false,20],['تلفزيون',false,20],['طاولة',false,20],['سجادة',false,20],['مصباح',false,20],['فرن',true,-30]],extra:['كرسي','ستارة','وسائد']}
 ];
 const bankQs=[
 ['اذكر 3 عواصم عربية',['الرياض','القاهرة','أبوظبي','الكويت','الدوحة','مسقط']],['اذكر 3 فواكه',['تفاح','موز','برتقال','عنب','تفاح','مانجو']],['اذكر 3 أكلات سعودية',['كبسة','مندي','جريش','قرصان','مرقوق']],['اذكر 3 رياضات',['كرة قدم','تنس','سباحة','جري','ملاكمة']],['اذكر 3 أشياء في السيارة',['مقعد','مكيف','مقود','شاحن','راديو']],['اذكر 3 حيوانات',['أسد','فيل','حصان','نمر','دولفين']],['اذكر 3 وظائف',['طبيب','مهندس','معلم','طيار','محاسب']],['اذكر 3 مشروبات',['ماء','قهوة','شاي','عصير','حليب']],['اذكر 3 أشياء في المطبخ',['ثلاجة','فرن','قدر','ملعقة','مقلاة']],['اذكر 3 دول عربية',['السعودية','مصر','الإمارات','الكويت','قطر']],['اذكر 3 مدن سعودية',['الرياض','جدة','مكة','الدمام','أبها']],['اذكر 3 لاعبين كرة قدم',['ميسي','رونالدو','صلاح','مبابي','نيمار']],['اذكر 3 أشياء في المكتب',['كمبيوتر','قلم','ورق','طابعة','كرسي']],['اذكر 3 أشياء في البحر',['ماء','سمك','رمل','موج','مرجان']],['اذكر 3 أشياء للمدرسة',['كتاب','دفتر','قلم','حقيبة','مسطرة']],['اذكر 3 أشياء للشتاء',['معطف','بطانية','مدفأة','شال','قفازات']],['اذكر 3 حلويات',['كنافة','دونات','كيك','آيس كريم','قطايف']],['اذكر 3 وسائل نقل',['سيارة','طائرة','قطار','حافلة','سفينة']],['اذكر 3 أشياء في الحمام',['صابون','منشفة','مرآة','شامبو','فرشاة']],['اذكر 3 أشياء في السفر',['جواز','شنطة','شاحن','ملابس','حذاء']],['اذكر 3 ألوان',['أحمر','أزرق','أخضر','أصفر','بنفسجي']],['اذكر 3 أشياء غالية',['ذهب','ألماس','ساعة','سيارة','يخت']],['اذكر 3 أفلام أو شخصيات',['باتمان','سبايدرمان','شريك','إلسا','هاري بوتر']],['اذكر 3 تطبيقات',['واتساب','يوتيوب','انستقرام','سناب','تيك توك']],['اذكر 3 أشياء في المطار',['جواز','طائرة','بوابة','حقيبة','تذكرة']],['اذكر 3 أشياء في الحفلة',['كيكة','موسيقى','طعام','هدايا','تصوير']],['اذكر 3 أشياء تفعلها قبل النوم',['تصفح الجوال','تنظيف الأسنان','قراءة','شرب ماء','إطفاء الأنوار']],['اذكر 3 أشياء تشتريها من المول',['ملابس','أحذية','عطر','هدايا','إلكترونيات']],['اذكر 3 أشياء في غرفة النوم',['سرير','وسادة','خزانة','مرآة','مصباح']],['اذكر 3 أشياء تجعل الناس سعداء',['العائلة','الأصدقاء','المال','النجاح','السفر']]
@@ -130,19 +123,17 @@ function bombLoadQuestion(g){
   const q=pool[Math.floor(Math.random()*pool.length)];
   g.used.push(bombQs.indexOf(q));
 
-  // تدريج الصعوبة: الجولة 1 = إجابة واحدة، ثم 2، 3، 4، وبعدها 5 كحد أقصى.
-  const answerCount=Math.min(5,Math.max(1,g.round));
-  const source=(q.list||[]).slice(0,answerCount);
+  // كل سؤال يعرض 6 بطاقات ثابتة؛ عدد المفخخات يرتفع تدريجيًا.
+  const source=(q.list||[]).slice(0,6);
   g.question=q.q;
-  g.answers=source.map(x=>({text:x[0],trap:false,points:Math.max(5,Number(x[2])||q.p),revealed:false,awarded:false}));
-
-  // لا توجد مفخخة في الجولة الأولى. بعدها ترتفع تدريجيًا حتى مفخختين.
-  const trapCount=Math.min(g.answers.length, Math.max(0, Math.floor((g.round+1)/2)));
-  g.answers.slice().sort(()=>Math.random()-.5).slice(0,trapCount).forEach(a=>{
-    a.trap=true;
-    a.points=-[25,50,75,100][Math.floor(Math.random()*4)];
-  });
-  g.answers.sort(()=>Math.random()-.5);
+  g.answers=source.map(x=>({text:x[0],trap:!!x[1],points:Number(x[2])||q.p,revealed:false,awarded:false}));
+  const trapTarget=Math.min(3,1+Math.floor(Math.max(0,g.round-1)/3));
+  let traps=g.answers.filter(a=>a.trap);
+  g.answers.forEach(a=>{if(a.trap)a.trap=false;});
+  const shuffled=g.answers.slice().sort(()=>Math.random()-.5);
+  const selected=shuffled.slice(0,trapTarget);
+  selected.forEach(a=>{a.trap=true;a.points=-[30,50,75][Math.min(trapTarget-1,2)];});
+  g.answers=shuffled;
   g.extra=q.extra||[];g.points=q.p;g.result=null;g.submitted=null;g.revealIndex=-1;
   g.current=null;g.answerUntil=0;g.questionUntil=Date.now()+10000;g.phase='question';
 }
@@ -245,12 +236,24 @@ function scheduleBombTurn(g){
 }
  s.on('bomb:changeQuestion',()=>{
    const g=games.get(s.data?.game);
-   if(!g||g.type!=='bomb'||s.data?.role!=='presenter')return;
+   if(!g||g.type!=='bomb')return;
+   if(g.mode==='1'&&s.data?.role!=='presenter')return;
+   if(g.mode!=='1'&&s.data?.role!=='player')return;
    if(g.phase==='finished'||g.phase==='lobby')return;
    g.teamPlayerCursor=g.teamPlayerCursor||{A:0,B:0};
    bombLoadQuestion(g);broadcastBomb(g);scheduleBombQuestion(g);
  });
  s.on('bomb:start',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||g.phase!=='lobby')return;if(g.mode==='1'&&s.data?.role!=='presenter')return;if(g.mode!=='1'&&s.data?.role!=='player')return;if(!bombTeamsReady(g))return;bombStartRound(g);});
+ s.on('bomb:buzz',()=>{
+   const g=games.get(s.data?.game);
+   if(!g||g.type!=='bomb'||g.phase!=='question')return;
+   if(g.mode==='1'&&s.data?.role!=='presenter')return;
+   if(g.mode!=='1'&&s.data?.role!=='player')return;
+   const team=g.turnTeam||'A';
+   const p=g.teams?.find(t=>t.id===team)?.players?.find(p=>p.id===s.data?.pid&&p.online!==false);
+   if(!p&&g.mode!=='1')return;
+   bombSetTurnCountdown(g,team);
+ });
  s.on('bomb:submit',({answer,sessionToken:submittedToken,playerId}={},ack)=>{
    const done=(x)=>{try{ack?.(x)}catch(e){}};
    const g=games.get(s.data?.game);
@@ -328,7 +331,7 @@ function scheduleBombTurn(g){
    },1650);
  });
  s.on('bomb:judge',({index,outside=false,answer}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||g.mode!=='1'||g.phase!=='judge'||s.data?.role!=='presenter'||!g.current)return;const p=g.players.find(x=>x.id===g.current.id),t=g.teams.find(x=>x.id===g.current.team);let kind='wrong',delta=0,matched=null;if(outside){kind='outside';delta=Math.max(1,Math.floor((g.points||10)/2));matched=String(answer||g.submitted||'إجابة صحيحة خارج اللائحة').trim()}else if(Number.isInteger(index)&&g.answers[index]){const a=g.answers[index];if(a.awarded)return;a.awarded=true;kind=a.trap?'trap':'listed';delta=a.points;matched=a.text}if(kind==='wrong'){delta=-10;t.strikes=Math.min(3,t.strikes+1)}t.score+=delta;g.scores[p.id]=(g.scores[p.id]||0)+delta;g.result={kind,delta,answer:g.submitted||'',matched,team:t.id,player:p.name,strikes:t.strikes};g.history.push({round:g.round,player:p.name,team:t.id,question:g.question,answer:g.submitted||'',kind,matched,delta});g.revealIndex=kind==='listed'?Number(index):-1;g.phase='reveal';g.revealUntil=Date.now()+1600;broadcastBomb(g);setTimeout(()=>{if(g.phase==='reveal'&&g.result?.player===p.name){if(g.revealIndex>=0&&g.answers[g.revealIndex])g.answers[g.revealIndex].revealed=true;g.phase='result';g.current=null;g.answerUntil=0;broadcastBomb(g);setTimeout(()=>{if(g.phase==='result'){if(g.round<g.maxRounds)bombAdvanceTeam(g);else{g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g)}}},1200)}},1650)});
- s.on('bomb:reveal',({index}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||!g.answers[index])return;if(s.data?.role!=='presenter')return;g.answers[index].revealed=true;broadcastBomb(g)});
+ s.on('bomb:reveal',({index}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||!g.answers[index])return;if(s.data?.role!=='presenter'&&s.data?.role!=='player')return;g.answers[index].revealed=true;broadcastBomb(g)});
  s.on('bomb:next',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb')return;if(g.mode==='1'&&s.data?.role!=='presenter')return;if(g.mode!=='1'&&s.data?.role!=='player')return;if(g.round>=g.maxRounds){g.phase='finished';g.finishedAt=Date.now();return broadcastBomb(g)}g.phase='lobby';g.current=null;broadcastBomb(g)});
  s.on('mini:start',()=>{const g=games.get(s.data?.game);if(!g||!['bomb','last','bank'].includes(g.type)||!(s.data?.role==='presenter'||g.mode!=='presenter'))return;if(g.round>=g.maxRounds){g.phase='finished';return broadcast(g)}g.scores=g.scores||{};g.players.forEach(p=>{g.scores[p.id]=g.scores[p.id]||0;g.balances[p.id]=g.balances[p.id]??10000});g.round++;g.used=g.used||[];if(g.type==='bomb'){let pool=bombQs.filter((_,i)=>!g.used.includes(i));if(!pool.length){g.used=[];pool=bombQs}const q=pool[Math.floor(Math.random()*pool.length)],idx=bombQs.indexOf(q);g.used.push(idx);g.question=q.q;g.answers=q.list.map(x=>({text:x[0],trap:x[1],points:x[2]}));g.extra=q.extra;g.points=q.p;g.phase='question';g.current=null}else if(g.type==='last'){let pool=lastQs.filter((_,i)=>!g.used.includes(i));if(!pool.length){g.used=[];pool=lastQs}const q=pool[Math.floor(Math.random()*pool.length)],idx=lastQs.indexOf(q);g.used.push(idx);g.question=q.q;g.answers=q.a;g.turnOrder=g.players.filter(p=>g.scores[p.id]>-999).map(p=>p.id);g.turnIndex=0;g.turnPlayer=g.turnOrder[0]||null;g.phase='turn';g.current=null;g.roundAnswers={};scheduleLastTurn(g)}else{let pool=bankQs.filter((_,i)=>!g.used.includes(i));if(!pool.length){g.used=[];pool=bankQs}const q=pool[Math.floor(Math.random()*pool.length)],idx=bankQs.indexOf(q);g.used.push(idx);g.question=q[0];g.answers=q[1];g.phase='bank';g.current=null;g.selectedRisk={};g.roundDone={}}broadcast(g)});
  s.on('last:next',()=>{const g=games.get(s.data?.game);if(g?.type==='last'&&(s.data?.role==='presenter'||g.mode!=='presenter')){if(g.round<g.maxRounds){g.phase='lobby'}else g.phase='finished';broadcast(g)}});

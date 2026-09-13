@@ -3,6 +3,7 @@ services:
     name: family-feud-realtime
     env: node
     plan: free
+    healthCheckPath: /health
     buildCommand: npm install
     startCommand: npm start
     envVars:
