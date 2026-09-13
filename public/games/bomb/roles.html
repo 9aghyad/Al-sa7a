@@ -2,11 +2,11 @@
 const q=new URLSearchParams(location.search),code=(q.get('code')||'').toUpperCase(),mode=q.get('mode')||'1',creatorName=q.get('name')||'لاعب',creatorTeam=q.get('team')==='B'?'B':'A',token=q.get('sessionToken')||'';
 const teamName=creatorTeam==='A'?'الفريق الأحمر':'الفريق الأزرق',teamEmoji=creatorTeam==='A'?'🔴':'🔵';
 const safe=(x)=>String(x||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const player=`<div class="creatorPlayerCard"><div class="playerIcon">${teamEmoji}</div><div><div class="small">أنت متسابق</div><h2>${safe(creatorName)}</h2><p>أنت مسجل مسبقًا في <b>${teamName}</b>. لا تحتاج إنشاء لاعب جديد.</p></div><button class="btn primary bigGameAction" onclick="player()">👤 دخول كلاعب — ${teamName}</button></div>`;
+const playerCard=`<div class="creatorPlayerCard"><div class="playerIcon">${teamEmoji}</div><div><div class="small">أنت متسابق</div><h2>${safe(creatorName)}</h2><p>أنت مسجل مسبقًا في <b>${teamName}</b>. لا تحتاج إنشاء لاعب جديد.</p></div><button class="btn primary bigGameAction" onclick="enterPlayer()">👤 دخول كلاعب — ${teamName}</button></div>`;
 let roles='';
 if(mode==='1')roles=`<button class="roleCard bombRolePresenter" onclick="go('presenter')"><span>🎙️</span><b>دخول المقدم</b><small>الإجابات كاملة أمامك والتحكم بالكشف والحكم</small></button>`;
 roles+=`<button class="roleCard bombRoleDisplay" onclick="go('display')"><span>🖥️</span><b>دخول الشاشة</b><small>لوحة كبيرة للسؤال والمربعات والمؤثرات</small></button>${player}`;
 document.getElementById('roles').innerHTML=`<div class="bombEntryHead"><div class="bombBadge">💣 المفخخة</div><div class="code bigCode">${safe(code)}</div><h1>اختر شاشة الدخول</h1><p>الغرفة جاهزة. اختر الجهاز الذي ستستخدمه — حسابك كلاعب محفوظ.</p></div><div class="entryRoles">${roles}</div>`;
 function go(r){location.href='/games/bomb/'+r+'?code='+encodeURIComponent(code)}
-function player(){location.href='/games/bomb/players?code='+encodeURIComponent(code)+'&name='+encodeURIComponent(creatorName)+'&team='+encodeURIComponent(creatorTeam)+'&sessionToken='+encodeURIComponent(token)}
+function enterPlayer(){location.href='/games/bomb/players?code='+encodeURIComponent(code)+'&name='+encodeURIComponent(creatorName)+'&team='+encodeURIComponent(creatorTeam)+'&sessionToken='+encodeURIComponent(token)}
 </script></body></html>
