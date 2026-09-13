@@ -122,3 +122,68 @@ html,body{margin:0;min-height:100%;background:var(--bm-bg);overflow-x:hidden}
 .playerView .questionStage .questionStats span{font-size:10px;padding:6px 8px}
 .playerView .questionStage .stageCountdown{font-size:11px;margin-top:7px}
 .playerView .questionStage .stageCountdown b{font-size:16px}
+
+/* Mofakha v13 — hierarchy + compact answer area */
+.bombMain{gap:16px}
+.questionBlock{padding:30px 34px}
+.questionBlock h1{font-size:clamp(34px,4.5vw,64px);line-height:1.2}
+.bombBoard{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0}
+.bombTile,.questionFace,.answerFace{min-height:150px}
+.bombTile .questionFace span{font-size:clamp(58px,6vw,82px)}
+.bombTile .answerFace b{font-size:clamp(21px,2.2vw,31px)}
+.answerCard{min-height:0!important;padding:16px 20px!important;max-width:980px;width:100%;margin:0 auto;align-self:center}
+.turnBadge{font-size:15px;padding:7px 12px}
+.hugeTimer{font-size:clamp(58px,7vw,86px);margin:5px 0 2px}
+.fuseLine{max-width:560px;height:6px;margin:4px auto 10px}
+.typedPanel{margin-top:5px}
+.typedTitle{font-size:15px;margin-bottom:6px}
+.answerInput{min-height:52px;font-size:18px}
+.sendAnswer{min-height:52px;padding:0 20px}
+.typedPanel>small{font-size:11px;margin-top:5px}
+.waitingText{margin:7px 0}
+.questionStage h2{font-size:clamp(31px,4.5vw,60px)}
+.questionStats span{font-size:13px;padding:8px 13px}
+
+.playerView .bombMain{gap:10px}
+.playerView .questionBlock{padding:14px 16px;border-radius:18px}
+.playerView .questionBlock span{font-size:11px}
+.playerView .questionBlock h1{font-size:clamp(25px,5.5vw,40px);line-height:1.22;margin-top:5px;-webkit-line-clamp:3}
+.playerView .bombBoard{grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;max-height:210px;overflow:auto}
+.playerView .bombTile,.playerView .bombTile .questionFace,.playerView .bombTile .answerFace{height:96px;min-height:96px;border-radius:15px}
+.playerView .bombTile .questionFace span{font-size:50px}
+.playerView .bombTile .questionFace small{font-size:11px}
+.playerView .bombTile .answerFace b{font-size:17px}
+.playerView .bombTile .answerFace small{font-size:10px}
+.playerView .answerCard{flex:0 0 auto;min-height:0!important;max-height:245px;padding:10px 14px!important;border-radius:18px}
+.playerView .turnBadge{font-size:14px}
+.playerView .hugeTimer{font-size:clamp(48px,10vw,70px);line-height:.9;margin:3px 0}
+.playerView .fuseLine{height:5px;margin:3px auto 6px}
+.playerView .typedPanel{margin-top:3px}
+.playerView .typedTitle{font-size:13px;margin-bottom:4px}
+.playerView .inputRow{grid-template-columns:1fr 108px;gap:6px}
+.playerView .answerInput,.playerView .sendAnswer{height:44px;min-height:44px}
+.playerView .answerInput{font-size:18px!important}
+.playerView .sendAnswer{padding:0 8px}
+.playerView .typedPanel>small{font-size:9px;margin-top:3px}
+.playerView .submitStatus{min-height:14px;font-size:10px}
+
+@media(max-width:600px){
+  .bombMain{gap:10px}
+  .questionBlock{padding:18px 14px}
+  .questionBlock h1{font-size:30px}
+  .bombBoard{grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px}
+  .bombTile,.questionFace,.answerFace{min-height:128px}
+  .bombTile .questionFace span{font-size:58px}
+  .bombTile .answerFace b{font-size:18px}
+  .answerCard{padding:14px!important}
+  .hugeTimer{font-size:62px}
+  .inputRow{grid-template-columns:1fr 105px}
+}
+@media(max-width:380px){
+  .playerView .questionBlock h1{font-size:23px}
+  .playerView .bombBoard{grid-template-columns:repeat(auto-fit,minmax(118px,1fr));max-height:198px}
+  .playerView .bombTile,.playerView .bombTile .questionFace,.playerView .bombTile .answerFace{height:86px;min-height:86px}
+  .playerView .bombTile .questionFace span{font-size:43px}
+  .playerView .bombTile .answerFace b{font-size:15px}
+  .playerView .inputRow{grid-template-columns:1fr 96px}
+}
