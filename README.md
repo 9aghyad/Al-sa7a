@@ -26,3 +26,10 @@
 - Bomb timeout now applies a -20 point penalty and one strike in every mode, including presenter mode, then advances the turn.
 - Timeout result is shown explicitly instead of appearing as a silent no-op.
 - Duplicate submit is blocked client-side after sending.
+
+
+## Mofakha v11
+- Question stage shows counts only; answer texts stay hidden.
+- Bomb answers are single-word entries.
+- Answer submission uses socket acknowledgement and retry while time remains.
+- Click sound is disabled inside the Bomb gameplay screen.
