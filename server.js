@@ -36,7 +36,7 @@ function millionAdvance(g){if(!g.turnOrder?.length){g.turnPlayer=null;g.phase='f
 function pubMillion(g){return {...g,questions:undefined,playersState:Object.fromEntries(Object.entries(g.playersState).map(([id,x])=>[id,{...x,question:x.question?x.question.q:undefined,options:x.options}]))}}
 function pub(g){if(g.type==='family'){const teams=(g.teams||[]).map(t=>({...t,players:(g.players||[]).filter(p=>p.team===t.id).map(p=>({id:p.id,name:p.name,online:p.online!==false,status:p.online!==false?'online':(p.disconnectedAt&&Date.now()-p.disconnectedAt<DISCONNECT_GRACE_MS?'reconnecting':'away')}))}));return {...g,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false,disconnectedAt:p.disconnectedAt||null,status:p.online!==false?'online':(p.disconnectedAt&&Date.now()-p.disconnectedAt<DISCONNECT_GRACE_MS?'reconnecting':'away')})),teams,bank:undefined}}if(g.type==='guess')return null;if(g.type==='million')return pubMillion(g);return g}
 function broadcast(g){if(g.phase==='finished'&&!g.finishedAt)g.finishedAt=Date.now();if(g.type==='guess'){broadcastGuess(g);persistGames();return}if(g.type==='bomb'){broadcastBomb(g);persistGames();return}io.to(g.code).emit('state',pub(g));persistGames()}
-function broadcastBomb(g){const room=io.sockets.adapter.rooms.get(g.code);if(!room)return;for(const sid of room){const isHost=io.sockets.sockets.get(sid)?.data?.role==='presenter';const answers=(g.answers||[]).map(a=>isHost||a.revealed?{text:a.text,points:a.points,trap:isHost?a.trap:undefined,revealed:a.revealed,awarded:a.awarded}:({text:'',points:0,revealed:false,awarded:false}));const teams=(g.teams||[]).map(t=>({id:t.id,name:t.name,score:t.score,strikes:t.strikes,players:(t.players||[]).map(p=>({id:p.id,name:p.name,online:p.online!==false}))}));const out={...g,answers,teams,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false})),scores:g.scores,questionStats:{listed:(g.answers||[]).length,traps:(g.answers||[]).filter(a=>a.trap).length,extra:(g.extra||[]).length}};if(!isHost){out.extra=undefined;out.used=undefined}io.to(sid).emit('state',out)}}
+function broadcastBomb(g){const room=io.sockets.adapter.rooms.get(g.code);if(!room)return;for(const sid of room){const isHost=io.sockets.sockets.get(sid)?.data?.role==='presenter';const answers=(g.answers||[]).map(a=>isHost||a.revealed?{text:a.text,points:a.points,trap:isHost?a.trap:undefined,revealed:a.revealed,awarded:a.awarded}:({text:'',points:0,revealed:false,awarded:false}));const teams=(g.teams||[]).map(t=>({id:t.id,name:t.name,score:t.score,strikes:t.strikes,players:(t.players||[]).map(p=>({id:p.id,name:p.name,online:p.online!==false}))}));const out={...g,answers,teams,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false})),scores:g.scores,questionStats:{listed:(g.answers||[]).length,traps:(g.answers||[]).filter(a=>a.trap).length,extra:(g.extra||[]).length,round:g.round}};if(!isHost){out.extra=undefined;out.used=undefined}io.to(sid).emit('state',out)}}
 function broadcastGuess(g){const room=io.sockets.adapter.rooms.get(g.code);if(!room)return;for(const sid of room){const out={...g,secret:undefined,players:g.players.map(p=>({...p,revealedWord:g.revealedBy[sid]?.[p.id]||null,guessed:!!g.guessed[p.id],score:g.scores[p.id]||0}))};io.to(sid).emit('state',out)}}
 function addPlayer(g,s,name,team,token){const cleanToken=String(token||'');const existing=cleanToken&&g.players.find(p=>p.sessionToken===cleanToken);if(existing){return restorePlayerIdentity(g,existing,s)}const p={id:s.id,name:String(name||'').trim().slice(0,24)||'لاعب',team:team==='B'?'B':'A',sessionToken:sessionToken(),online:true,disconnectedAt:null,socketId:s.id};g.players.push(p);if(g.type==='family'||g.type==='bomb')g.teams.find(t=>t.id===p.team).players.push(p);if(g.type==='guess')g.scores[p.id]=0;if(g.type==='bomb')g.scores[p.id]=0;if(g.type==='million')millionInitPlayer(g,p);s.join(g.code);s.data={game:g.code,role:'player',pid:p.id,team:p.team,sessionToken:p.sessionToken};persistGames();return p}
 function startFF(g){let choices=g.bank.map((_,i)=>i).filter(i=>!g.usedQuestionIndexes.includes(i));if(!choices.length){g.usedQuestionIndexes=[];choices=g.bank.map((_,i)=>i)}const idx=choices[Math.floor(Math.random()*choices.length)];g.usedQuestionIndexes.push(idx);const q=g.bank[idx];g.currentRound++;g.questionIndex=idx;g.question=q.q;g.answers=q.a.map(x=>({text:x[0],points:x[1],revealed:false,awarded:false}));g.phase='question';g.lock=null;g.answerLock=null;g.teams.forEach(t=>{t.strikes=0;t.doubleActive=false;t.doublePlayer=''});broadcast(g)}
@@ -96,6 +96,7 @@ function bombSetTurnCountdown(g, team){
   g.answerUntil=Date.now()+10000;
   g.phase='answer';
   g.submitted=null;
+  g.lastSubmission=null;
   g.result=null;
   g.timeoutHandledFor=null;
   broadcastBomb(g);
@@ -128,10 +129,19 @@ function bombLoadQuestion(g){
   if(!pool.length){g.used=[];pool=bombQs}
   const q=pool[Math.floor(Math.random()*pool.length)];
   g.used.push(bombQs.indexOf(q));
+
+  // تدريج الصعوبة: الجولة 1 = إجابة واحدة، ثم 2، 3، 4، وبعدها 5 كحد أقصى.
+  const answerCount=Math.min(5,Math.max(1,g.round));
+  const source=(q.list||[]).slice(0,answerCount);
   g.question=q.q;
-  g.answers=q.list.map(x=>({text:x[0],trap:false,points:Math.max(5,Number(x[2])||q.p),revealed:false,awarded:false}));
-  const trapCount=Math.min(2,Math.max(1,Math.floor(Math.random()*3)));
-  g.answers.slice().sort(()=>Math.random()-.5).slice(0,trapCount).forEach(a=>{a.trap=true;a.points=-[25,50,75,100][Math.floor(Math.random()*4)]});
+  g.answers=source.map(x=>({text:x[0],trap:false,points:Math.max(5,Number(x[2])||q.p),revealed:false,awarded:false}));
+
+  // لا توجد مفخخة في الجولة الأولى. بعدها ترتفع تدريجيًا حتى مفخختين.
+  const trapCount=Math.min(g.answers.length, Math.max(0, Math.floor((g.round+1)/2)));
+  g.answers.slice().sort(()=>Math.random()-.5).slice(0,trapCount).forEach(a=>{
+    a.trap=true;
+    a.points=-[25,50,75,100][Math.floor(Math.random()*4)];
+  });
   g.answers.sort(()=>Math.random()-.5);
   g.extra=q.extra||[];g.points=q.p;g.result=null;g.submitted=null;g.revealIndex=-1;
   g.current=null;g.answerUntil=0;g.questionUntil=Date.now()+10000;g.phase='question';
@@ -244,8 +254,18 @@ function scheduleBombTurn(g){
  s.on('bomb:submit',({answer,sessionToken:submittedToken,playerId}={},ack)=>{
    const done=(x)=>{try{ack?.(x)}catch(e){}};
    const g=games.get(s.data?.game);
-   if(!g||g.type!=='bomb'||g.phase!=='answer'||!g.current)return done({ok:false,reason:'not-answering'});
+   if(!g||g.type!=='bomb')return done({ok:false,reason:'not-answering'});
    const token=String(submittedToken||s.data?.sessionToken||'');
+   const incoming=String(answer||'').trim();
+   // Idempotency: if the client already submitted successfully but lost the ACK,
+   // acknowledge the same submission instead of treating the retry as a new turn.
+   if(g.lastSubmission&&incoming&&bombSmartMatch(incoming,g.lastSubmission.answer).ok){
+     const sameToken=token&&token===g.lastSubmission.sessionToken;
+     const samePlayer=playerId&&String(playerId)===String(g.lastSubmission.playerId);
+     const sameSocket=s.data?.pid&&String(s.data.pid)===String(g.lastSubmission.playerId);
+     if(sameToken||samePlayer||sameSocket)return done({ok:true,duplicate:true,kind:g.lastSubmission.kind,delta:g.lastSubmission.delta,matched:g.lastSubmission.matched});
+   }
+   if(g.phase!=='answer'||!g.current)return done({ok:false,reason:'not-answering'});
    let linked=g.players.find(p=>p.sessionToken===token);
    if(!linked&&playerId)linked=g.players.find(p=>p.id===String(playerId));
    if(!linked&&s.data?.pid)linked=g.players.find(p=>p.id===s.data.pid);
@@ -284,6 +304,7 @@ function scheduleBombTurn(g){
    g.scores=g.scores||{};
    g.scores[p.id]=(g.scores[p.id]||0)+delta;
    g.result={kind,delta,answer:submitted,matched,smart:!!matchInfo?.fuzzy,team:t.id,player:p.name,strikes:t.strikes};
+   g.lastSubmission={playerId:p.id,sessionToken:p.sessionToken,answer:submitted,kind,delta,matched};
    g.history.push({round:g.round,player:p.name,team:t.id,question:g.question,answer:submitted,kind,matched,delta});
    g.revealIndex=found?g.answers.indexOf(found):-1;
    g.revealUntil=Date.now()+1600;
