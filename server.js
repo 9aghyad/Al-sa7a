@@ -211,7 +211,7 @@ function finishBombTimeout(g){
   const penalty=-20;
   t.score+=penalty;
   t.strikes=Math.min(3,(t.strikes||0)+1);
-  g.scores[p.id]=(g.scores[p.id]||0)+penalty;
+  g.scores=g.scores||{};g.scores[p.id]=(g.scores[p.id]||0)+penalty;
   g.submitted='انتهى الوقت';
   g.result={kind:'timeout',delta:penalty,answer:'انتهى الوقت',matched:null,smart:false,team:t.id,player:p.name,strikes:t.strikes};
   g.history.push({round:g.round,player:p.name,team:t.id,question:g.question,answer:'',kind:'timeout',delta:penalty});
@@ -241,7 +241,71 @@ function scheduleBombTurn(g){
    bombLoadQuestion(g);broadcastBomb(g);scheduleBombQuestion(g);
  });
  s.on('bomb:start',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||g.phase!=='lobby')return;if(g.mode==='1'&&s.data?.role!=='presenter')return;if(g.mode!=='1'&&s.data?.role!=='player')return;if(!bombTeamsReady(g))return;bombStartRound(g);});
- s.on('bomb:submit',({answer,sessionToken:submittedToken}={},ack)=>{const done=(x)=>{try{ack?.(x)}catch(e){}};const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||g.phase!=='answer'||!g.current)return done({ok:false,reason:'not-answering'});const token=String(submittedToken||s.data?.sessionToken||'');const linked=g.players.find(p=>p.sessionToken===token);if(g.current.id!==s.id&&g.current.id!==linked?.id)return done({ok:false,reason:'not-your-turn'});if(linked&&linked.id!==s.id){restorePlayerIdentity(g,linked,s);g.current.id=linked.id;}if(Date.now()>=g.answerUntil){finishBombTimeout(g);return done({ok:false,reason:'timeout'});}g.submitted=String(answer||'').trim();if(!g.submitted)return done({ok:false,reason:'empty'});g.timeoutHandledFor=null;const p=g.players.find(x=>x.id===g.current.id),t=g.teams.find(x=>x.id===g.current.team);if(!p||!t)return done({ok:false,reason:'player-not-found'});g.phase=g.mode==='1'?'judge':'reveal';if(g.mode!=='1'){let matchInfo=null;let found=(g.answers||[]).find(a=>{if(a.awarded)return false;const m=bombSmartMatch(g.submitted,a.text);if(m.ok)matchInfo=m;return m.ok});let kind='wrong',delta=0,matched=null;if(found){found.awarded=true;kind=found.trap?'trap':'listed';delta=found.points;matched=found.text}else if((g.extra||[]).some(x=>bombSmartMatch(g.submitted,x).ok)){kind='outside';delta=Math.max(1,Math.floor((g.points||10)/2));matched=g.submitted}if(kind==='wrong'){delta=-10;t.strikes=Math.min(3,t.strikes+1)}t.score+=delta;g.scores[p.id]=(g.scores[p.id]||0)+delta;g.result={kind,delta,answer:g.submitted,matched,smart:!!matchInfo?.fuzzy,team:t.id,player:p.name,strikes:t.strikes};g.history.push({round:g.round,player:p.name,team:t.id,question:g.question,answer:g.submitted,kind,matched,delta});g.revealIndex=found?g.answers.indexOf(found):-1;g.revealUntil=Date.now()+1600;broadcastBomb(g);done({ok:true});setTimeout(()=>{if(g.phase==='reveal'&&g.result?.player===p.name){if(g.revealIndex>=0&&g.answers[g.revealIndex])g.answers[g.revealIndex].revealed=true;g.phase='result';g.current=null;g.answerUntil=0;broadcastBomb(g);setTimeout(()=>{if(g.phase==='result'){if(g.round<g.maxRounds)bombAdvanceTeam(g);else{g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g)}}},1200)}},1650);return}done({ok:true});broadcastBomb(g)});
+ s.on('bomb:submit',({answer,sessionToken:submittedToken,playerId}={},ack)=>{
+   const done=(x)=>{try{ack?.(x)}catch(e){}};
+   const g=games.get(s.data?.game);
+   if(!g||g.type!=='bomb'||g.phase!=='answer'||!g.current)return done({ok:false,reason:'not-answering'});
+   const token=String(submittedToken||s.data?.sessionToken||'');
+   let linked=g.players.find(p=>p.sessionToken===token);
+   if(!linked&&playerId)linked=g.players.find(p=>p.id===String(playerId));
+   if(!linked&&s.data?.pid)linked=g.players.find(p=>p.id===s.data.pid);
+   if(g.current.id!==s.id&&g.current.id!==linked?.id)return done({ok:false,reason:'not-your-turn'});
+   if(linked&&linked.id!==s.id){restorePlayerIdentity(g,linked,s);g.current.id=linked.id;}
+   const now=Date.now();
+   if(now>=g.answerUntil){finishBombTimeout(g);return done({ok:false,reason:'timeout'});}
+   const submitted=String(answer||'').trim();
+   if(!submitted)return done({ok:false,reason:'empty'});
+   const p=g.players.find(x=>x.id===g.current.id),t=g.teams.find(x=>x.id===g.current.team);
+   if(!p||!t)return done({ok:false,reason:'player-not-found'});
+   g.submitted=submitted;
+   g.timeoutHandledFor=null;
+   let matchInfo=null;
+   let found=(g.answers||[]).find(a=>{
+     if(a.awarded)return false;
+     const m=bombSmartMatch(submitted,a.text);
+     if(m.ok)matchInfo=m;
+     return m.ok;
+   });
+   let kind='wrong',delta=0,matched=null;
+   if(found){
+     found.awarded=true;
+     kind=found.trap?'trap':'listed';
+     delta=found.points;
+     matched=found.text;
+   }else if((g.extra||[]).some(x=>bombSmartMatch(submitted,x).ok)){
+     kind='outside';
+     delta=Math.max(1,Math.floor((g.points||10)/2));
+     matched=submitted;
+   }else{
+     delta=-10;
+     t.strikes=Math.min(3,(t.strikes||0)+1);
+   }
+   t.score=(t.score||0)+delta;
+   g.scores=g.scores||{};
+   g.scores[p.id]=(g.scores[p.id]||0)+delta;
+   g.result={kind,delta,answer:submitted,matched,smart:!!matchInfo?.fuzzy,team:t.id,player:p.name,strikes:t.strikes};
+   g.history.push({round:g.round,player:p.name,team:t.id,question:g.question,answer:submitted,kind,matched,delta});
+   g.revealIndex=found?g.answers.indexOf(found):-1;
+   g.revealUntil=Date.now()+1600;
+   g.phase='reveal';
+   g.answerUntil=0;
+   broadcastBomb(g);
+   done({ok:true,kind,delta,matched});
+   setTimeout(()=>{
+     if(g.phase==='reveal'&&g.result?.player===p.name&&g.result?.answer===submitted){
+       if(g.revealIndex>=0&&g.answers[g.revealIndex])g.answers[g.revealIndex].revealed=true;
+       g.phase='result';
+       g.current=null;
+       broadcastBomb(g);
+       setTimeout(()=>{
+         if(g.phase==='result'&&g.result?.player===p.name){
+           if(g.round<g.maxRounds)bombAdvanceTeam(g);
+           else{g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g)}
+         }
+       },1200);
+     }
+   },1650);
+ });
  s.on('bomb:judge',({index,outside=false,answer}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||g.mode!=='1'||g.phase!=='judge'||s.data?.role!=='presenter'||!g.current)return;const p=g.players.find(x=>x.id===g.current.id),t=g.teams.find(x=>x.id===g.current.team);let kind='wrong',delta=0,matched=null;if(outside){kind='outside';delta=Math.max(1,Math.floor((g.points||10)/2));matched=String(answer||g.submitted||'إجابة صحيحة خارج اللائحة').trim()}else if(Number.isInteger(index)&&g.answers[index]){const a=g.answers[index];if(a.awarded)return;a.awarded=true;kind=a.trap?'trap':'listed';delta=a.points;matched=a.text}if(kind==='wrong'){delta=-10;t.strikes=Math.min(3,t.strikes+1)}t.score+=delta;g.scores[p.id]=(g.scores[p.id]||0)+delta;g.result={kind,delta,answer:g.submitted||'',matched,team:t.id,player:p.name,strikes:t.strikes};g.history.push({round:g.round,player:p.name,team:t.id,question:g.question,answer:g.submitted||'',kind,matched,delta});g.revealIndex=kind==='listed'?Number(index):-1;g.phase='reveal';g.revealUntil=Date.now()+1600;broadcastBomb(g);setTimeout(()=>{if(g.phase==='reveal'&&g.result?.player===p.name){if(g.revealIndex>=0&&g.answers[g.revealIndex])g.answers[g.revealIndex].revealed=true;g.phase='result';g.current=null;g.answerUntil=0;broadcastBomb(g);setTimeout(()=>{if(g.phase==='result'){if(g.round<g.maxRounds)bombAdvanceTeam(g);else{g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g)}}},1200)}},1650)});
  s.on('bomb:reveal',({index}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||!g.answers[index])return;if(s.data?.role!=='presenter')return;g.answers[index].revealed=true;broadcastBomb(g)});
  s.on('bomb:next',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb')return;if(g.mode==='1'&&s.data?.role!=='presenter')return;if(g.mode!=='1'&&s.data?.role!=='player')return;if(g.round>=g.maxRounds){g.phase='finished';g.finishedAt=Date.now();return broadcastBomb(g)}g.phase='lobby';g.current=null;broadcastBomb(g)});
