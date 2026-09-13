@@ -7,7 +7,7 @@ app.get('/games/family-feud/players',(_,r)=>r.sendFile(path.join(__dirname,'publ
 const games=new Map();const SESSION_FILE=path.join(__dirname,'data','sessions.json');const SESSION_RETENTION_MS=24*60*60*1000;const DISCONNECT_GRACE_MS=5*60*1000;
 function persistGames(){try{fs.mkdirSync(path.dirname(SESSION_FILE),{recursive:true});const arr=[...games.values()].map(g=>({...g}));fs.writeFileSync(SESSION_FILE,JSON.stringify(arr));}catch(e){console.error('session save failed',e.message)}}
 function rekey(obj,oldId,newId){if(!obj||oldId===newId)return;if(Object.prototype.hasOwnProperty.call(obj,oldId)){obj[newId]=obj[oldId];delete obj[oldId]}}
-function restorePlayerIdentity(g,p,s){const old=p.id,newId=s.id;if(old!==newId){['scores','balances','secured','playersState','guessed','roundDone'].forEach(k=>rekey(g[k],old,newId));if(g.revealedBy)rekey(g.revealedBy,old,newId);if(g.roundAnswers)rekey(g.roundAnswers,old,newId);if(Array.isArray(g.turnOrder))g.turnOrder=g.turnOrder.map(x=>x===old?newId:x);if(g.turnPlayer===old)g.turnPlayer=newId;p.id=newId;}p.socketId=s.id;p.online=true;p.disconnectedAt=null;s.data.pid=p.id;s.data.sessionToken=p.sessionToken;s.data.team=p.team;s.data.game=g.code;s.data.role='player';s.join(g.code);return p}
+function restorePlayerIdentity(g,p,s){const old=p.id,newId=s.id;if(old!==newId){['scores','balances','secured','playersState','guessed','roundDone'].forEach(k=>rekey(g[k],old,newId));if(g.revealedBy)rekey(g.revealedBy,old,newId);if(g.roundAnswers)rekey(g.roundAnswers,old,newId);if(Array.isArray(g.turnOrder))g.turnOrder=g.turnOrder.map(x=>x===old?newId:x);if(g.turnPlayer===old)g.turnPlayer=newId;if(g.current?.id===old)g.current.id=newId;p.id=newId;}p.socketId=s.id;p.online=true;p.disconnectedAt=null;s.data.pid=p.id;s.data.sessionToken=p.sessionToken;s.data.team=p.team;s.data.game=g.code;s.data.role='player';s.join(g.code);return p}
 function sessionToken(){return crypto.randomBytes(18).toString('hex')}
 const prefixes={family:'A',guess:'B',market:'C',bomb:'D',last:'E',bank:'F',million:'G'};
 const familyModeCodes={verbal:'1',written:'2',players:'3',presenter:'1',display:'2'};
@@ -36,7 +36,7 @@ function millionAdvance(g){if(!g.turnOrder?.length){g.turnPlayer=null;g.phase='f
 function pubMillion(g){return {...g,questions:undefined,playersState:Object.fromEntries(Object.entries(g.playersState).map(([id,x])=>[id,{...x,question:x.question?x.question.q:undefined,options:x.options}]))}}
 function pub(g){if(g.type==='family'){const teams=(g.teams||[]).map(t=>({...t,players:(g.players||[]).filter(p=>p.team===t.id).map(p=>({id:p.id,name:p.name,online:p.online!==false,status:p.online!==false?'online':(p.disconnectedAt&&Date.now()-p.disconnectedAt<DISCONNECT_GRACE_MS?'reconnecting':'away')}))}));return {...g,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false,disconnectedAt:p.disconnectedAt||null,status:p.online!==false?'online':(p.disconnectedAt&&Date.now()-p.disconnectedAt<DISCONNECT_GRACE_MS?'reconnecting':'away')})),teams,bank:undefined}}if(g.type==='guess')return null;if(g.type==='million')return pubMillion(g);return g}
 function broadcast(g){if(g.phase==='finished'&&!g.finishedAt)g.finishedAt=Date.now();if(g.type==='guess'){broadcastGuess(g);persistGames();return}if(g.type==='bomb'){broadcastBomb(g);persistGames();return}io.to(g.code).emit('state',pub(g));persistGames()}
-function broadcastBomb(g){const room=io.sockets.adapter.rooms.get(g.code);if(!room)return;for(const sid of room){const isHost=io.sockets.sockets.get(sid)?.data?.role==='presenter';const answers=(g.answers||[]).map(a=>isHost||a.revealed?{text:a.text,points:a.points,trap:isHost?a.trap:undefined,revealed:a.revealed,awarded:a.awarded}:({text:'',points:0,revealed:false,awarded:false}));const teams=(g.teams||[]).map(t=>({id:t.id,name:t.name,score:t.score,strikes:t.strikes,players:(t.players||[]).map(p=>({id:p.id,name:p.name,online:p.online!==false}))}));const out={...g,answers,teams,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false})),scores:g.scores};if(!isHost){out.extra=undefined;out.used=undefined}io.to(sid).emit('state',out)}}
+function broadcastBomb(g){const room=io.sockets.adapter.rooms.get(g.code);if(!room)return;for(const sid of room){const isHost=io.sockets.sockets.get(sid)?.data?.role==='presenter';const answers=(g.answers||[]).map(a=>isHost||a.revealed?{text:a.text,points:a.points,trap:isHost?a.trap:undefined,revealed:a.revealed,awarded:a.awarded}:({text:'',points:0,revealed:false,awarded:false}));const teams=(g.teams||[]).map(t=>({id:t.id,name:t.name,score:t.score,strikes:t.strikes,players:(t.players||[]).map(p=>({id:p.id,name:p.name,online:p.online!==false}))}));const out={...g,answers,teams,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false})),scores:g.scores,questionStats:{listed:(g.answers||[]).length,traps:(g.answers||[]).filter(a=>a.trap).length,extra:(g.extra||[]).length}};if(!isHost){out.extra=undefined;out.used=undefined}io.to(sid).emit('state',out)}}
 function broadcastGuess(g){const room=io.sockets.adapter.rooms.get(g.code);if(!room)return;for(const sid of room){const out={...g,secret:undefined,players:g.players.map(p=>({...p,revealedWord:g.revealedBy[sid]?.[p.id]||null,guessed:!!g.guessed[p.id],score:g.scores[p.id]||0}))};io.to(sid).emit('state',out)}}
 function addPlayer(g,s,name,team,token){const cleanToken=String(token||'');const existing=cleanToken&&g.players.find(p=>p.sessionToken===cleanToken);if(existing){return restorePlayerIdentity(g,existing,s)}const p={id:s.id,name:String(name||'').trim().slice(0,24)||'لاعب',team:team==='B'?'B':'A',sessionToken:sessionToken(),online:true,disconnectedAt:null,socketId:s.id};g.players.push(p);if(g.type==='family'||g.type==='bomb')g.teams.find(t=>t.id===p.team).players.push(p);if(g.type==='guess')g.scores[p.id]=0;if(g.type==='bomb')g.scores[p.id]=0;if(g.type==='million')millionInitPlayer(g,p);s.join(g.code);s.data={game:g.code,role:'player',pid:p.id,team:p.team,sessionToken:p.sessionToken};persistGames();return p}
 function startFF(g){let choices=g.bank.map((_,i)=>i).filter(i=>!g.usedQuestionIndexes.includes(i));if(!choices.length){g.usedQuestionIndexes=[];choices=g.bank.map((_,i)=>i)}const idx=choices[Math.floor(Math.random()*choices.length)];g.usedQuestionIndexes.push(idx);const q=g.bank[idx];g.currentRound++;g.questionIndex=idx;g.question=q.q;g.answers=q.a.map(x=>({text:x[0],points:x[1],revealed:false,awarded:false}));g.phase='question';g.lock=null;g.answerLock=null;g.teams.forEach(t=>{t.strikes=0;t.doubleActive=false;t.doublePlayer=''});broadcast(g)}
@@ -128,7 +128,6 @@ function bombSetTurnCountdown(g, team){
   g.current=bombPickPlayer(g,team);
   if(!g.current){const other=team==='A'?'B':'A';g.turnTeam=other;g.current=bombPickPlayer(g,other)}
   if(!g.current){g.phase='lobby';g.answerUntil=0;broadcastBomb(g);return false}
-  // Ten seconds is the actual answer window. No extra pre-answer countdown.
   g.countdownUntil=0;
   g.answerUntil=Date.now()+10000;
   g.phase='answer';
@@ -137,6 +136,15 @@ function bombSetTurnCountdown(g, team){
   broadcastBomb(g);
   scheduleBombTurn(g);
   return true;
+}
+function scheduleBombQuestion(g){
+  const round=g.round, until=g.questionUntil;
+  setTimeout(()=>{
+    if(g.phase==='question'&&g.round===round&&until<=Date.now()){
+      const firstTeam=(g.teams.find(t=>t.id==='A')?.players||[]).some(p=>p.online!==false)?'A':'B';
+      bombSetTurnCountdown(g,firstTeam);
+    }
+  },3600);
 }
 function bombAdvanceTeam(g){
   if((g.answers||[]).length&&g.answers.every(a=>a.awarded)){
@@ -170,10 +178,12 @@ function bombStartRound(g){
   g.answers.slice().sort(()=>Math.random()-.5).slice(0,trapCount).forEach(a=>{a.trap=true;a.points=-[25,50,75,100][Math.floor(Math.random()*4)]});
   g.answers.sort(()=>Math.random()-.5);
   g.extra=q.extra||[];g.points=q.p;g.result=null;g.submitted=null;
-  g.turnTeam='B';g.teamPlayerCursor={A:0,B:0};g.current=null;
-  // First turn is always Red when available; subsequent turns alternate by team.
-  const firstTeam=(g.teams.find(t=>t.id==='A')?.players||[]).some(p=>p.online!==false)?'A':'B';
-  return bombSetTurnCountdown(g,firstTeam);
+  g.turnTeam='A';g.teamPlayerCursor={A:0,B:0};g.current=null;g.answerUntil=0;
+  g.questionUntil=Date.now()+3500;
+  g.phase='question';
+  broadcastBomb(g);
+  scheduleBombQuestion(g);
+  return true;
 }
 function scheduleLastTurn(g){const id=g.turnPlayer;if(!id||g.phase!=='turn')return;g.answerUntil=Date.now()+10000;broadcast(g);setTimeout(()=>{if(g.phase==='turn'&&g.turnPlayer===id){const p=g.players.find(x=>x.id===id);if(p){g.roundAnswers[id]={id,name:p.name,answer:'',valid:false,timeout:true};g.scores[id]=(g.scores[id]||0)-1;g.history.push({round:g.round,player:p.name,answer:'',valid:false,timeout:true,delta:-1})}g.turnIndex++;g.turnPlayer=g.turnOrder[g.turnIndex]||null;if(!g.turnPlayer)g.phase='lastResult';else scheduleLastTurn(g);broadcast(g)}},10100)}
 io.on('connection',s=>{
@@ -265,7 +275,7 @@ function scheduleBombTurn(g){
  s.on('bank:answer',({answer}={})=>{const g=games.get(s.data?.game);if(g?.type!=='bank'||g.phase!=='bank'||!g.selectedRisk[s.id])return;const qAnswers=g.answers||[];const ok=qAnswers.some(x=>smart(answer,x));const risk=g.selectedRisk[s.id];g.balances[s.id]=ok?(g.balances[s.id]??10000)+risk:Math.max(g.secured[s.id]||0,(g.balances[s.id]??10000)-risk);g.scores[s.id]=g.balances[s.id];g.roundDone[s.id]={ok,risk,answer:String(answer||'')};g.history.push({round:g.round,player:g.players.find(p=>p.id===s.id)?.name,question:g.question,answer:String(answer||''),risk,ok,delta:ok?risk:-risk,balance:g.balances[s.id]});if(Object.keys(g.roundDone).length>=g.players.length){g.phase='bankResult'}broadcast(g)});
  s.on('bank:deposit',()=>{const g=games.get(s.data?.game);if(g?.type!=='bank'||g.phase!=='bankResult'||g.round%3!==0)return;g.secured[s.id]=g.balances[s.id]||0;broadcast(g)});
  s.on('bank:next',()=>{const g=games.get(s.data?.game);if(g?.type==='bank'&&(s.data?.role==='presenter'||g.mode!=='presenter')){if(g.round<g.maxRounds)g.phase='lobby';else g.phase='finished';broadcast(g)}});
- s.on('room:leave',({code}={})=>{const g=games.get(clean(code||s.data?.game));if(!g)return;s.leave(g.code);if(s.data?.role==='player'){const idx=g.players.findIndex(p=>p.id===s.data?.pid||p.socketId===s.id);if(idx>=0){const p=g.players[idx];p.online=false;p.disconnectedAt=null;p.socketId=null;p.sessionToken='REVOKED-'+crypto.randomBytes(8).toString('hex');if(g.type==='family'){for(const t of g.teams||[]){t.players=(t.players||[]).filter(x=>x.id!==p.id)}}if(g.type==='bomb'){for(const t of g.teams||[]){t.players=(t.players||[]).filter(x=>x.id!==p.id)}}if(g.scores)delete g.scores[p.id];if(g.balances)delete g.balances[p.id];if(g.secured)delete g.secured[p.id];if(g.guessed)delete g.guessed[p.id];if(g.playersState)delete g.playersState[p.id];if(g.revealedBy)delete g.revealedBy[p.id];g.players.splice(idx,1)}}if(!g.players.length){games.delete(g.code);s.emit('room:left',{code:g.code});persistGames();return}s.emit('room:left',{code:g.code});broadcast(g);persistGames()});
+ s.on('room:leave',({code}={})=>{const g=games.get(clean(code||s.data?.game));if(!g)return;s.leave(g.code);if(s.data?.role==='player'){const idx=g.players.findIndex(p=>p.id===s.data?.pid||p.socketId===s.id);if(idx>=0){const p=g.players[idx];if(g.type==='bomb'){p.online=false;p.disconnectedAt=Date.now();p.socketId=null;/* Keep bomb players, score and token so accidental exits can reconnect. */}else{p.online=false;p.disconnectedAt=null;p.socketId=null;p.sessionToken='REVOKED-'+crypto.randomBytes(8).toString('hex');if(g.type==='family'){for(const t of g.teams||[]){t.players=(t.players||[]).filter(x=>x.id!==p.id)}}if(g.scores)delete g.scores[p.id];if(g.balances)delete g.balances[p.id];if(g.secured)delete g.secured[p.id];if(g.guessed)delete g.guessed[p.id];if(g.playersState)delete g.playersState[p.id];if(g.revealedBy)delete g.revealedBy[p.id];g.players.splice(idx,1)}}}if(!g.players.length){games.delete(g.code);s.emit('room:left',{code:g.code});persistGames();return}s.emit('room:left',{code:g.code});broadcast(g);persistGames()});
  s.on('disconnect',()=>{const g=games.get(s.data?.game);if(!g)return;const p=g.players.find(p=>p.id===s.data?.pid||p.socketId===s.id);if(p){p.online=false;p.disconnectedAt=Date.now();p.socketId=null}broadcast(g);persistGames()});
 });
 try{if(fs.existsSync(SESSION_FILE)){const saved=JSON.parse(fs.readFileSync(SESSION_FILE,'utf8'));for(const g of saved){if(g?.code&&g?.players)games.set(g.code,g);}}}catch(e){console.error('session restore failed',e.message)}
