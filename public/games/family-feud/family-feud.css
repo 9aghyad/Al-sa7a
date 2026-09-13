@@ -21,6 +21,6 @@
 .presenterAnswers .answer.hidden{filter:none!important}
 .playerAnswers .answer{min-height:125px}
 
-/* Players-only answer cards: show ranking number until the answer is earned */
-.answerNumber{font-size:clamp(42px,7vw,70px);font-weight:1000;color:#fff;line-height:1}
-@media(max-width:760px){.answerNumber{font-size:40px}}
+/* A3 players-only reveal fallback */
+.revealAllBtn{display:block;width:min(420px,100%);margin:14px auto 0;font-size:18px}
+.scorePop{position:relative;z-index:2}
