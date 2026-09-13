@@ -43,3 +43,10 @@ body{background:radial-gradient(circle at 50% -15%,rgba(255,69,86,.16),transpare
 @media(max-width:900px){.bombMain{grid-template-columns:1fr}.bombBoard{grid-template-columns:repeat(2,minmax(0,1fr))}.judgeGrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.bombApp{width:94vw;padding-top:10px}.bombHeader{align-items:flex-start}.bombHeader b{font-size:17px}.roomCode{font-size:13px;letter-spacing:3px}.bombTeams{gap:8px}.bombTeam{padding:12px}.teamTop strong{font-size:30px}.questionBlock{padding:20px 14px}.questionBlock h1{font-size:27px}.bombBoard{gap:8px}.bombTile,.questionFace,.answerFace{min-height:118px}.questionFace span{font-size:45px}.answerFace b{font-size:17px}.inputRow{grid-template-columns:1fr}.sendAnswer{min-height:52px}.judgeGrid,.judgeActions{grid-template-columns:1fr}.hostTools{flex-wrap:wrap}.megaDelta{font-size:65px}}
 @media(min-width:901px) and (orientation:landscape){.bombApp{min-height:94vh}.bombMain{grid-template-columns:minmax(0,1.35fr) minmax(390px,.65fr)}.questionBlock{order:0}.bombBoard{order:1}.answerCard,.truthCard,.resultCard,.judgeCard,.lobbyCard,.finishedCard{order:2}}
+
+/* Timeout feedback */
+.timeoutResult{border-color:rgba(255,110,80,.4);background:radial-gradient(circle at 50% 30%,rgba(255,80,60,.15),transparent 55%),rgba(30,12,16,.92)}
+.timeoutResult .megaDelta{color:#ff5f67}
+.timeoutPenalty{display:block;margin-top:10px;color:#ffb0a5;font-weight:900;font-size:15px}
+.sendAnswer:disabled{opacity:.6;cursor:not-allowed;transform:none!important}
+@media(min-width:901px) and (orientation:landscape){.playerView .bombMain{grid-template-columns:minmax(0,1.15fr) minmax(420px,.85fr)}.playerView .answerCard{align-self:center}}
