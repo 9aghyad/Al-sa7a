@@ -58,3 +58,19 @@ body{background:radial-gradient(circle at 50% -15%,rgba(255,69,86,.16),transpare
 
 .resumeBombCard{margin:14px 18px 0;padding:16px 18px;border-radius:20px;background:rgba(68,214,153,.07);border:1px solid rgba(68,214,153,.22);display:flex;align-items:center;gap:12px;flex-wrap:wrap}.resumeBombCard b{color:#8ff0c2}.resumeBombCard small{color:var(--bm-muted);flex:1}.resumeBombCard .bigGameAction{width:auto;margin:0}@media(max-width:600px){.resumeBombCard .bigGameAction{width:100%}}
 .changeQBtn{background:linear-gradient(135deg,#8b5cf6,#6d5dfc)!important;color:#fff!important;font-weight:1000}
+
+/* Mofakha v10: readable preview + resilient answer UX */
+.previewAnswers{width:min(1100px,100%);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:4px auto 12px;animation:previewIn .55s ease both}
+.previewAnswer{min-height:58px;padding:10px 12px;border-radius:15px;background:rgba(255,255,255,.055);border:1px solid rgba(255,209,102,.18);display:flex;align-items:center;gap:10px;text-align:right;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.previewAnswer span{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:rgba(255,209,102,.12);color:var(--bm-gold);font-weight:1000;flex:none}
+.previewAnswer b{font-size:clamp(14px,1.6vw,20px);line-height:1.35}
+.questionStage .stageCountdown b{color:var(--bm-gold)}
+.bombLocalToast{position:fixed;z-index:100;left:50%;bottom:22px;transform:translateX(-50%);max-width:92vw;padding:13px 17px;border-radius:15px;background:#151c2b;border:1px solid rgba(255,209,102,.25);box-shadow:0 15px 45px rgba(0,0,0,.5);font-weight:900;text-align:center}
+@keyframes previewIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media(max-width:900px){.previewAnswers{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.previewAnswers{grid-template-columns:1fr;max-height:235px;overflow:hidden}.previewAnswer{min-height:45px}.previewAnswer b{font-size:14px}.questionStage .stageCountdown{font-size:12px}}
+
+/* v10 preview polish */
+.questionStage{min-height:520px}
+.previewAnswers{flex:0 0 auto}
+@media(max-width:600px){.questionStage{min-height:430px}.previewAnswers{max-height:260px;overflow:auto;padding-inline:2px}.previewAnswer{min-height:42px}}
