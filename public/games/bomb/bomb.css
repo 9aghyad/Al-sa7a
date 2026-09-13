@@ -74,3 +74,8 @@ body{background:radial-gradient(circle at 50% -15%,rgba(255,69,86,.16),transpare
 .questionStage{min-height:520px}
 .previewAnswers{flex:0 0 auto}
 @media(max-width:600px){.questionStage{min-height:430px}.previewAnswers{max-height:260px;overflow:auto;padding-inline:2px}.previewAnswer{min-height:42px}}
+
+/* v11: stats-only question preview — answers remain hidden */
+.previewAnswers{display:none!important}
+.questionStats.visibleStats{opacity:1!important;animation:none!important}
+.questionStage .stageCountdown b{color:var(--bm-gold)}
