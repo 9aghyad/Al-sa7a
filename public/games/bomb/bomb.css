@@ -187,3 +187,38 @@ html,body{margin:0;min-height:100%;background:var(--bm-bg);overflow-x:hidden}
   .playerView .bombTile .answerFace b{font-size:15px}
   .playerView .inputRow{grid-template-columns:1fr 96px}
 }
+
+
+/* v18 — unified Mofakha arena */
+.bombApp.presenterView,.bombApp.playerView,.bombApp.displayView{width:min(1180px,100%);margin:0 auto;box-sizing:border-box}
+.bombApp .bombHeader{border-radius:18px;background:linear-gradient(145deg,#11182a,#0b101c);border:1px solid rgba(255,255,255,.09);padding:10px 14px}
+.bombApp .bombMain{width:100%;box-sizing:border-box}
+.bombApp .questionBlock{background:linear-gradient(145deg,#121b2d,#0c1220);border:1px solid rgba(255,255,255,.09);box-shadow:0 16px 45px rgba(0,0,0,.22);text-align:center}
+.bombApp .questionBlock span{color:#ffd166;font-weight:900}
+.bombApp .questionBlock h1{font-weight:1000;letter-spacing:-.5px}
+.bombApp .bombBoard{width:100%;box-sizing:border-box}
+.bombApp .bombTile{border:1px solid rgba(255,255,255,.10);box-shadow:0 12px 30px rgba(0,0,0,.25);animation:bmCardIn .42s cubic-bezier(.2,.8,.2,1) both}
+.bombApp .bombTile:nth-child(1){animation-delay:.03s}.bombApp .bombTile:nth-child(2){animation-delay:.10s}.bombApp .bombTile:nth-child(3){animation-delay:.17s}.bombApp .bombTile:nth-child(4){animation-delay:.24s}.bombApp .bombTile:nth-child(5){animation-delay:.31s}.bombApp .bombTile:nth-child(6){animation-delay:.38s}
+@keyframes bmCardIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+.bombApp .bombTile.isRevealed{border-color:rgba(255,209,102,.38);box-shadow:0 15px 40px rgba(255,180,60,.10)}
+.bombApp .revealBtn{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);z-index:3;border:1px solid rgba(255,255,255,.10);background:rgba(8,12,22,.85);color:#fff;padding:7px 12px;border-radius:10px;font-weight:900;white-space:nowrap}
+.bombApp .answerFace{padding:12px 10px;box-sizing:border-box}
+.bombApp .answerFace b{font-weight:1000;text-align:center}
+.bombApp .answerCard,.bombApp .lobbyCard,.bombApp .truthCard,.bombApp .resultCard{width:min(980px,100%);box-sizing:border-box;margin-inline:auto}
+.bombApp .typedPanel{width:min(900px,100%);margin-inline:auto}
+.bombApp .sendAnswer,.bombApp .answerInput{border-radius:14px}
+.bombApp .sendAnswer{font-weight:1000}
+.bombApp .hostTools{width:min(980px,100%);margin:0 auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.bombApp .hostTools button{min-height:42px;border-radius:13px}
+@media(max-width:700px){
+ .bombApp.presenterView,.bombApp.displayView{padding:8px!important}
+ .bombApp.presenterView .bombHeader,.bombApp.displayView .bombHeader{height:auto;min-height:52px}
+ .bombApp.presenterView .questionBlock,.bombApp.displayView .questionBlock{padding:14px 12px}
+ .bombApp.presenterView .questionBlock h1,.bombApp.displayView .questionBlock h1{font-size:clamp(25px,7vw,38px);line-height:1.2;margin:5px 0}
+ .bombApp.presenterView .bombBoard,.bombApp.displayView .bombBoard{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .bombApp.presenterView .bombTile,.bombApp.displayView .bombTile{min-height:118px}
+ .bombApp.presenterView .questionFace,.bombApp.displayView .questionFace,.bombApp.presenterView .answerFace,.bombApp.displayView .answerFace{min-height:118px}
+ .bombApp.presenterView .questionFace span,.bombApp.displayView .questionFace span{font-size:55px}
+ .bombApp.presenterView .answerFace b,.bombApp.displayView .answerFace b{font-size:17px}
+ .bombApp.presenterView .answerCard,.bombApp.displayView .answerCard{padding:12px!important}
+}
