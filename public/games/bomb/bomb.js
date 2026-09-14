@@ -103,7 +103,7 @@ function submitAnswer(){
  });
 }
 function leave(){if(code)socket.emit('room:leave',{code});location.href='/'}
-socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='reveal'){if(s.result?.kind!=='revealed')sound('suspense');if(s.result?.kind==='trap'){sound('explosion');setTimeout(triggerExplosion,40)}else if(s.result?.kind==='listed'||s.result?.kind==='outside')sound('correct');else if(s.result?.kind==='wrong')sound('wrong');}if(s.phase==='result'&&s.result?.kind==='revealed')sound('reveal');if(s.phase==='finished'){sound('win');setTimeout(()=>sound('applause'),350)}}render()});
+socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='reveal'){if(s.result?.kind!=='revealed')sound('suspense');}if(s.phase==='result'){if(s.result?.kind==='trap'){sound('explosion');setTimeout(triggerExplosion,20)}else if(s.result?.kind==='listed'||s.result?.kind==='outside')sound('correct');else if(s.result?.kind==='wrong')sound('wrong');else if(s.result?.kind==='revealed')sound('reveal')}if(s.phase==='finished'){sound('win');setTimeout(()=>sound('applause'),350)}}render()});
 socket.on('joined',x=>{me=x.playerId;sessionToken=x.sessionToken||sessionToken;socket.emit('room:sync',{code});toast('✓ دخلت الغرفة')});
 socket.on('room:created',x=>{code=x.code;role='player';sessionToken=x.sessionToken||'';render()});
 socket.on('errorMsg',toast);
