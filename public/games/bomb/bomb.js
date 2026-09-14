@@ -72,7 +72,7 @@ function finished(){
 function player(){
  const p=G.players?.find(x=>x.id===me),t=G.teams?.find(x=>x.id===p?.team);
  let body=G.phase==='lobby'?lobby():G.phase==='question'?questionBlock():G.phase==='answer'?turnPanel():G.phase==='reveal'?`<div class="truth"><span>لحظة الحقيقة</span><b>كشف الإجابة…</b></div>`:G.phase==='result'?revealPanel():finished();
- set(`<div class="bombApp player"><div id="explosionOverlay" class="explosionOverlay" aria-hidden="true"><div class="explosionCore">💥</div><div class="explosionText">مفخخة!</div></div><div class="playerIdentity"><span>${teamIcon(t?.id)} ${esc(t?.name||'')}</span><b>${esc(p?.name||'لاعب')}</b></div>${header('شاشة اللاعبين')}${teamsBar()}<main>${G.phase!=='lobby'&&G.phase!=='question'?`<div class="questionStrip"><span>السؤال</span><h1>${esc(G.question||'')}</h1><div class="questionCounts"><b>${G.questionStats?.listed||G.answers?.length||0} إجابات</b><b>${G.questionStats?.traps||0} مفخخات</b><b>${G.questionStats?.extra||0} خارج اللوحة</b></div></div>`:''}${G.phase!=='lobby'&&G.phase!=='question'?board():''}${body}</main>${G.phase!=='lobby'&&G.phase!=='finished'?`<button class="changeQuestion" onclick="newQuestion()">🔄 تغيير السؤال</button>`:''}<button class="leaveBtn" onclick="leave()">خروج من الغرفة</button></div>`);
+ set(`<div class="bombApp player"><div id="explosionOverlay" class="explosionOverlay" aria-hidden="true"><div class="explosionCore">💥</div><div class="explosionText">مفخخة!</div></div><div class="playerIdentity"><span>${teamIcon(t?.id)} ${esc(t?.name||'')}</span><b>${esc(p?.name||'لاعب')}</b></div>${header('شاشة اللاعبين')}${teamsBar()}<main>${G.phase!=='lobby'&&G.phase!=='question'?`<div class="questionStrip"><span>السؤال</span><h1>${esc(G.question||'')}</h1><div class="questionCounts"><b>${G.questionStats?.listed||G.answers?.length||0} إجابات</b><b>${G.questionStats?.traps||0} مفخخات</b><b>${G.questionStats?.extra||0} خارج اللوحة</b></div></div>`:''}${G.phase!=='lobby'&&G.phase!=='question'?board():''}${body}</main>${G.phase!=='lobby'&&G.phase!=='finished'?`<button class="changeQuestion" onclick="newQuestion()">🔄 تغيير السؤال</button>`:''}</div>`);
  if(G.phase==='question')tick(G.questionUntil,'questionTimer');
  if(G.phase==='answer'&&G.current?.id===me&&G.answerUntil)tick(G.answerUntil,'answerTimer');
 }
@@ -98,12 +98,12 @@ function submitAnswer(){
  const input=document.getElementById('answerInput'),v=input?.value?.trim();
  if(!v||G?.phase!=='answer'||G.current?.id!==me)return;
  socket.emit('bomb:submit',{answer:v,sessionToken,playerId:me},(err,res)=>{
-   if(err||!res?.ok){toast(res?.reason==='not-your-turn'?'ليس دورك الآن':'تعذر إرسال الإجابة');return}
-   input.disabled=true;toast('✓ تم التصحيح تلقائيًا');
+   if(err||!res?.ok)return;
+   input.disabled=true;
  });
 }
 function leave(){if(code)socket.emit('room:leave',{code});location.href='/'}
-socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='answer')sound('suspense');if(s.phase==='result'){if(s.result?.kind!=='revealed')sound(s.result?.kind==='trap'?'explosion':s.result?.kind==='listed'||s.result?.kind==='outside'?'correct':'wrong');if(s.result?.kind==='trap')setTimeout(triggerExplosion,40);}if(s.phase==='finished'){sound('win');setTimeout(()=>sound('applause'),350)}}render()});
+socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='reveal'){if(s.result?.kind!=='revealed')sound('suspense');if(s.result?.kind==='trap'){sound('explosion');setTimeout(triggerExplosion,40)}else if(s.result?.kind==='listed'||s.result?.kind==='outside')sound('correct');else if(s.result?.kind==='wrong')sound('wrong');}if(s.phase==='result'&&s.result?.kind==='revealed')sound('reveal');if(s.phase==='finished'){sound('win');setTimeout(()=>sound('applause'),350)}}render()});
 socket.on('joined',x=>{me=x.playerId;sessionToken=x.sessionToken||sessionToken;socket.emit('room:sync',{code});toast('✓ دخلت الغرفة')});
 socket.on('room:created',x=>{code=x.code;role='player';sessionToken=x.sessionToken||'';render()});
 socket.on('errorMsg',toast);

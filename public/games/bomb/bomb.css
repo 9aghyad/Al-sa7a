@@ -405,16 +405,6 @@ main{padding:4px 0}.questionHero,.lobby,.judgePanel,.turnPanel,.revealPanel,.tru
   color:#cfe0ff;
   font-size:11px;
 }
-.player .leaveBtn{
-  position:relative;
-  z-index:2;
-  margin:8px auto 0;
-  padding:8px 12px;
-  background:transparent;
-  border:0;
-  color:#8296c5;
-  font-size:10px;
-}
 .player .explosionOverlay{z-index:1000}
 
 @media(max-width:360px){
