@@ -88,17 +88,35 @@ function bombBuildTurnOrder(g){
   const order=[];
   const max=Math.max(a.length,b.length);
   for(let i=0;i<max;i++){
-    if(a[i]) order.push({id:a[i].id,name:a[i].name,team:'A'});
-    if(b[i]) order.push({id:b[i].id,name:b[i].name,team:'B'});
+    if(a[i])order.push({id:a[i].id,name:a[i].name,team:'A'});
+    if(b[i])order.push({id:b[i].id,name:b[i].name,team:'B'});
   }
   return order;
 }
-function bombSetTurnCountdown(g, orderIndex){
+function bombSetTurnCountdown(g,nextTeam){
+  const teams=['A','B'];
+  g.teamPlayerCursor=g.teamPlayerCursor||{A:0,B:0};
+  let desired=nextTeam||g.nextTeam||'A';
+  let selected=null;
+  for(let attempt=0;attempt<2;attempt++){
+    const teamId=teams.includes(desired)?desired:'A';
+    const list=(g.teams?.find(t=>t.id===teamId)?.players||[]).filter(p=>p.online!==false);
+    if(list.length){
+      const idx=(g.teamPlayerCursor[teamId]||0)%list.length;
+      const p=list[idx];
+      g.teamPlayerCursor[teamId]=(idx+1)%list.length;
+      selected={id:p.id,name:p.name,team:teamId};
+      break;
+    }
+    desired=teamId==='A'?'B':'A';
+  }
+  if(!selected){g.phase='lobby';g.current=null;broadcastBomb(g);return false}
+  g.current=selected;
+  g.turnTeam=selected.team;
+  g.nextTeam=selected.team==='A'?'B':'A';
   g.turnOrder=bombBuildTurnOrder(g);
-  if(!g.turnOrder.length){g.phase='lobby';g.current=null;broadcastBomb(g);return false}
-  g.turnIndex=((orderIndex%g.turnOrder.length)+g.turnOrder.length)%g.turnOrder.length;
-  g.current={...g.turnOrder[g.turnIndex]};
-  g.turnTeam=g.current.team;
+  g.turnIndex=g.turnOrder.findIndex(x=>x.id===selected.id);
+  if(g.turnIndex<0)g.turnIndex=0;
   g.answerSeconds=10;
   g.answerUntil=Date.now()+g.answerSeconds*1000;
   g.phase='answer';
@@ -106,7 +124,7 @@ function bombSetTurnCountdown(g, orderIndex){
   g.lastSubmission=null;
   g.result=null;
   broadcastBomb(g);
-  const round=g.round, playerId=g.current.id, until=g.answerUntil;
+  const round=g.round,playerId=g.current.id,until=g.answerUntil;
   setTimeout(()=>{
     if(g.phase==='answer'&&g.round===round&&g.current?.id===playerId&&g.answerUntil===until&&Date.now()>=until){
       const timeoutPenalty=-10;
@@ -116,9 +134,7 @@ function bombSetTurnCountdown(g, orderIndex){
       g.result={kind:'timeout',delta:timeoutPenalty,answer:'',matched:null,team:g.current.team,player:g.current.name,timeout:true};
       g.history.push({round:g.round,player:g.current.name,team:g.current.team,question:g.question,answer:'',kind:'timeout',matched:null,delta:timeoutPenalty,auto:true});
       g.phase='result';g.answerUntil=0;broadcastBomb(g);
-      setTimeout(()=>{
-        if(g.phase==='result'&&g.result?.kind==='timeout'&&g.round===round){bombAdvanceTeam(g)}
-      },700);
+      setTimeout(()=>{if(g.phase==='result'&&g.result?.kind==='timeout'&&g.round===round){bombAdvanceTeam(g)}},700);
     }
   },g.answerSeconds*1000+120);
   return true;
@@ -139,9 +155,7 @@ function bombAdvanceTeam(g){
     }else{g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g)}
     return;
   }
-  const order=g.turnOrder?.length?g.turnOrder:bombBuildTurnOrder(g);
-  if(!order.length){g.phase='lobby';g.current=null;broadcastBomb(g);return}
-  bombSetTurnCountdown(g,(g.turnIndex+1)%order.length);
+  bombSetTurnCountdown(g,g.nextTeam||'A');
 }
 function bombLoadQuestion(g){
   let pool=bombQs.filter((_,i)=>!g.used.includes(i));
@@ -169,6 +183,9 @@ function bombStartRound(g){
   if(g.round>=g.maxRounds){g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g);return true}
   g.round++;
   g.turnIndex=0;
+  g.teamPlayerCursor={A:0,B:0};
+  g.nextTeam='A';
+  g.turnTeam=null;
   bombLoadQuestion(g);
   broadcastBomb(g);
   scheduleBombQuestion(g);
@@ -279,7 +296,7 @@ function scheduleBombTurn(g){}
    g.result={kind,delta,answer:submitted,matched,team:t.id,player:p.name,fuzzy,auto:true};
    g.history.push({round:g.round,player:p.name,team:t.id,question:g.question,answer:submitted,kind,matched,delta,auto:true});
    g.revealIndex=revealIndex;
-   g.revealUntil=Date.now()+3000;
+   g.revealUntil=Date.now()+3150;
    g.phase='reveal';
    g.answerUntil=0;
    broadcastBomb(g);
@@ -295,7 +312,7 @@ function scheduleBombTurn(g){}
          }
        },1800);
      }
-   },3050);
+   },3200);
  });
  s.on('bomb:judge',({index,outside=false,answer}={})=>{
    const g=games.get(s.data?.game);
@@ -319,7 +336,7 @@ function scheduleBombTurn(g){}
    g.result={kind,delta,answer:g.submitted||'',matched,team:t.id,player:p.name};
    g.history.push({round:g.round,player:p.name,team:t.id,question:g.question,answer:g.submitted||'',kind,matched,delta});
    g.revealIndex=revealIndex;
-   g.revealUntil=Date.now()+3000;
+   g.revealUntil=Date.now()+3150;
    g.phase='reveal';
    broadcastBomb(g);
    setTimeout(()=>{
@@ -333,7 +350,7 @@ function scheduleBombTurn(g){}
          }
        },1800);
      }
-   },3050);
+   },3200);
  });
  s.on('bomb:reveal',({index}={})=>{
    const g=games.get(s.data?.game);
