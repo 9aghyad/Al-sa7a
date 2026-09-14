@@ -337,25 +337,22 @@ function scheduleBombTurn(g){}
    const a=g.answers[index];
    if(a.awarded)return;
    const revealRound=g.round;
+   const player=g.current;
    a.awarded=true;
+   a.revealed=true;
    g.revealIndex=index;
-   g.result={kind:'revealed',delta:0,answer:'',matched:a.text,team:g.current.team,player:g.current.name,revealedOnly:true};
-   g.revealUntil=Date.now()+3000;
-   g.phase='reveal';
+   g.result={kind:'revealed',delta:0,answer:'',matched:a.text,team:player.team,player:player.name,revealedOnly:true};
+   g.revealUntil=0;
+   g.phase='result';
+   g.current=null;
+   g.answerUntil=0;
    broadcastBomb(g);
    setTimeout(()=>{
-     if(g.phase!=='reveal'||g.result?.kind!=='revealed'||g.revealIndex!==index)return;
-     a.revealed=true;
-     g.phase='result';
-     g.current=null;
-     broadcastBomb(g);
-     setTimeout(()=>{
-       if(g.phase==='result'&&g.result?.kind==='revealed'&&g.round===revealRound){
-         if(g.round<g.maxRounds)bombAdvanceTeam(g);
-         else{g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g)}
-       }
-     },1200);
-   },3050);
+     if(g.phase==='result'&&g.result?.kind==='revealed'&&g.round===revealRound){
+       if(g.round<g.maxRounds)bombAdvanceTeam(g);
+       else{g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g)}
+     }
+   },900);
  });
  s.on('bomb:next',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb')return;if(g.mode==='1'&&s.data?.role!=='presenter')return;if(g.mode!=='1'&&s.data?.role!=='player')return;if(g.round>=g.maxRounds){g.phase='finished';g.finishedAt=Date.now();return broadcastBomb(g)}g.phase='lobby';g.current=null;broadcastBomb(g)});
  s.on('mini:start',()=>{const g=games.get(s.data?.game);if(!g||!['last','bank'].includes(g.type)||!(s.data?.role==='presenter'||g.mode!=='presenter'))return;if(g.round>=g.maxRounds){g.phase='finished';return broadcast(g)}g.scores=g.scores||{};g.players.forEach(p=>{g.scores[p.id]=g.scores[p.id]||0;g.balances[p.id]=g.balances[p.id]??10000});g.round++;g.used=g.used||[];if(g.type==='bomb'){let pool=bombQs.filter((_,i)=>!g.used.includes(i));if(!pool.length){g.used=[];pool=bombQs}const q=pool[Math.floor(Math.random()*pool.length)],idx=bombQs.indexOf(q);g.used.push(idx);g.question=q.q;g.answers=q.list.map(x=>({text:x[0],trap:x[1],points:x[2]}));g.extra=q.extra;g.points=q.p;g.phase='question';g.current=null}else if(g.type==='last'){let pool=lastQs.filter((_,i)=>!g.used.includes(i));if(!pool.length){g.used=[];pool=lastQs}const q=pool[Math.floor(Math.random()*pool.length)],idx=lastQs.indexOf(q);g.used.push(idx);g.question=q.q;g.answers=q.a;g.turnOrder=g.players.filter(p=>g.scores[p.id]>-999).map(p=>p.id);g.turnIndex=0;g.turnPlayer=g.turnOrder[0]||null;g.phase='turn';g.current=null;g.roundAnswers={};scheduleLastTurn(g)}else{let pool=bankQs.filter((_,i)=>!g.used.includes(i));if(!pool.length){g.used=[];pool=bankQs}const q=pool[Math.floor(Math.random()*pool.length)],idx=bankQs.indexOf(q);g.used.push(idx);g.question=q[0];g.answers=q[1];g.phase='bank';g.current=null;g.selectedRisk={};g.roundDone={}}broadcast(g)});
