@@ -27,22 +27,20 @@ function header(label){
  return `<header class="bombTop"><div class="brand"><div class="bombLogo">💣</div><div><b>المفخخة</b><small>${esc(label)}</small></div></div><div class="roundInfo">الجولة <b>${G.round||0}</b> / ${G.maxRounds||0}</div><div class="roomCode">${esc(G.code)}</div></header>`
 }
 function questionBlock(){
- return `<section class="questionHero"><div class="floatingBomb">💣</div><span>السؤال</span><h1>${esc(G.question||'')}</h1><div class="questionMeta"><b>${(G.answers||[]).length} إجابات مخفية</b><b>${G.questionStats?.traps??(G.answers||[]).filter(a=>a.trap).length} مفخخات</b></div><div class="threeCountdown"><span>ابدأوا بعد</span><b id="questionTimer">3</b></div></section>`
+ return `<section class="questionHero"><div class="floatingBomb">💣</div><span>السؤال</span><h1>${esc(G.question||'')}</h1><div class="questionMeta"><b>${(G.answers||[]).length} إجابات</b><b>${G.questionStats?.traps??(G.answers||[]).filter(a=>a.trap).length} مفخخات</b><b>${G.questionStats?.extra??(G.extra||[]).length} خارج اللوحة</b></div><div class="threeCountdown"><span>ابدأوا بعد</span><b id="questionTimer">3</b></div></section>`
 }
 function board(){
+ const mineTeam=G.players?.find(x=>x.id===me)?.team;
+ const canReveal=G.phase==='answer'&&G.current?.team===mineTeam&&G.current?.id===me;
  return `<section class="answerBoard">${(G.answers||[]).map((a,i)=>`<div class="answerTile ${a.revealed?'revealed':''} ${G.revealIndex===i&&G.phase==='reveal'?'revealTarget':''}">
-   ${a.revealed?`<div class="answerFront ${a.trap?'trap':''}"><span class="answerNumber">${i+1}</span><div><b>${esc(a.text)}</b><small>${a.trap?'💣 مفخخة':'إجابة صحيحة'}</small></div><strong>${a.points>0?'+':''}${a.points}</strong></div>`:`<div class="answerBack"><span>${i+1}</span><b>?</b></div>`}
+   ${a.revealed?`<div class="answerFront ${a.trap?'trap':''}"><span class="answerNumber">${i+1}</span><div><b>${esc(a.text)}</b><small>${a.trap?'💣 مفخخة':'إجابة صحيحة'}</small></div><strong>${a.points>0?'+':''}${a.points}</strong></div>`:`<div class="answerBack"><span>${i+1}</span><b>?</b>${canReveal?`<button class="revealAnswer" onclick="revealAnswer(${i})">كشف الإجابة</button>`:''}</div>`}
  </div>`).join('')}</section>`
 }
 function turnPanel(){
  const mine=G.current?.id===me;
- const written=String(G.mode)!=='1';
- const oralMine=mine&&!written&&role==='player';
  return `<section class="turnPanel ${mine?'mine':''}">
    <div class="turnTop"><span>${teamIcon(G.current?.team)} ${mine?'دورك الآن':'الدور الآن'}</span><b>${esc(G.current?.name||'')}</b></div>
-   ${oralMine?`<div class="waitingPlayer oralTurn"><div class="pulseDot"></div><b>قل إجابتك بصوت عالٍ 🎙️</b><span>المقدم يسمع إجابتك ويسجلها ويحكم عليها.</span></div>`:
-   mine&&written?`<form onsubmit="event.preventDefault();submitAnswer()" class="answerForm"><input id="answerInput" autocomplete="off" autofocus placeholder="اكتب إجابتك هنا…"><button>إرسال الإجابة ↵</button><small>التصحيح تلقائي في هذا النمط — لا يوجد مؤقت 10 ثوانٍ.</small></form>`:
-   `<div class="waitingPlayer"><div class="pulseDot"></div><b>${esc(G.current?.name||'اللاعب')} يجيب الآن</b><span>${written?'بانتظار إرسال الإجابة…':'بانتظار إجابة اللاعب…'}</span></div>`}
+   ${mine?`<form onsubmit="event.preventDefault();submitAnswer()" class="answerForm"><input id="answerInput" autocomplete="off" autofocus placeholder="اكتب إجابتك هنا…"><button>إرسال الإجابة ↵</button><small>التصحيح تلقائي • لا يوجد مؤقت 10 ثوانٍ</small></form>`:`<div class="waitingPlayer"><div class="pulseDot"></div><b>${esc(G.current?.name||'اللاعب')} يجيب الآن</b><span>الفريق الآخر يشاهد…</span></div>`}
  </section>`
 }
 function judgePanel(){
@@ -54,55 +52,33 @@ function judgePanel(){
 }
 function revealPanel(){
  const k=G.result?.kind;
- const title=k==='trap'?'وقعت في المفخخة!':k==='listed'?'إجابة صحيحة':k==='outside'?'إجابة صحيحة خارج اللائحة':'إجابة خاطئة';
+ const title=k==='trap'?'وقعت في المفخخة!':k==='listed'?'إجابة صحيحة':k==='outside'?'إجابة صحيحة خارج اللائحة':k==='revealed'?'تم كشف الإجابة':'إجابة خاطئة';
  return `<section class="revealPanel ${k==='trap'?'danger':k==='listed'||k==='outside'?'success':'fail'}">
    <div class="revealIcon">${k==='trap'?'💥':k==='listed'?'✓':k==='outside'?'★':'✕'}</div>
-   <h2>${title}</h2><div class="resultAnswer">${esc(G.result?.answer||'')}</div>
+   <h2>${title}</h2><div class="resultAnswer">${esc(G.result?.matched||G.result?.answer||'')}</div>
    <div class="resultDelta">${G.result?.delta>0?'+':''}${G.result?.delta||0}</div>
-   <small>${k==='trap'?'انفجرت الإجابة!':k==='outside'?'صحيحة لكن ليست ضمن الإجابات الأساسية':'النقاط أضيفت/خُصمت من الفريق'}</small>
+   <small>${k==='trap'?'انفجرت الإجابة!':k==='outside'?'صحيحة لكن ليست ضمن الإجابات الأساسية':k==='revealed'?'لا نقاط — تم كشف الإجابة والانتقال للفريق الآخر':'النقاط أضيفت/خُصمت من الفريق'}</small>
  </section>`
 }
 function lobby(){
  const ready=(G.teams||[]).every(t=>(t.players||[]).some(p=>p.online!==false));
- return `<section class="lobby">
-   <div class="lobbyBomb">💣</div><span class="eyebrow">غرفة المفخخة</span><h1>${G.round?'الجولة التالية':'جاهزون؟'}</h1>
-   <p>${ready?'يوجد لاعب متصل من كل فريق. المقدم هو من يبدأ اللعبة.':'لا يمكن بدء اللعبة حتى يدخل لاعب من الفريق الأحمر ولاعب من الفريق الأزرق.'}</p>
-   <div class="readyGrid">${(G.teams||[]).map(t=>`<div><span>${teamIcon(t.id)}</span><b>${esc(teamName(t.id))}</b><small>${(t.players||[]).filter(p=>p.online!==false).length?'✓ لاعب جاهز':'بانتظار لاعب'}</small></div>`).join('')}</div>
-   ${role==='presenter'||(G.mode!=='1'&&G.hostId===me)?`<button class="startGame" onclick="startGame()" ${ready?'':'disabled'}>🚀 ${G.round?'بدء الجولة':'بدء اللعبة'}</button>`:`<div class="waitingStart">${G.mode==='1'?'🎙️ بانتظار المقدم لبدء اللعبة':'⏳ بانتظار صاحب الغرفة لبدء اللعبة'}</div>`}
-   ${G.mode==='2'&&role==='player'?`<button class="screenLink" onclick="openDisplay()">🖥️ فتح شاشة العرض</button>`:''}
- </section>`
+ const isHost=G.hostId===me;
+ return `<section class="lobby"><div class="lobbyBomb">💣</div><span class="eyebrow">غرفة المفخخة</span><h1>${G.round?'الجولة التالية':'جاهزون؟'}</h1><p>${ready?'الفريقان جاهزان. صاحب الغرفة يبدأ اللعبة.':'لا يمكن بدء اللعبة حتى يدخل لاعب من الفريق الأحمر ولاعب من الفريق الأزرق.'}</p><div class="readyGrid">${(G.teams||[]).map(t=>`<div><span>${teamIcon(t.id)}</span><b>${esc(teamName(t.id))}</b><small>${(t.players||[]).filter(p=>p.online!==false).map(p=>esc(p.name)).join(' • ')||'بانتظار لاعب'}</small></div>`).join('')}</div>${isHost?`<button class="startGame" onclick="startGame()" ${ready?'':'disabled'}>🚀 ${G.round?'بدء الجولة':'بدء اللعبة'}</button>`:`<div class="waitingStart">⏳ بانتظار صاحب الغرفة لبدء اللعبة</div>`}<button class="changeQuestionLobby" onclick="newQuestion()">🔄 تغيير السؤال</button></section>`
 }
 function finished(){
  const a=G.teams?.[0],b=G.teams?.[1],win=a?.score===b?.score?null:(a?.score>b?.score?a:b);
  return `<section class="finished"><div>🏆</div><h1>${win?`فاز ${esc(teamName(win.id))}`:'تعادل!'}</h1><p>${a?.score||0} — ${b?.score||0}</p></section>`
 }
-function presenter(){
- let body='';
- if(G.phase==='lobby')body=lobby();
- else if(G.phase==='question')body=questionBlock();
- else if(G.phase==='answer')body=`<div class="displayJudge"><span>⚡ الدور الآن</span><b>${esc(G.current?.name||'')}</b><small>${G.mode==='1'?'اللاعب يجيب شفهيًا — المقدم يحكم.':'اللاعب يكتب إجابته من جهازه.'}</small></div>`;
- else if(G.phase==='judge')body=judgePanel();
- else if(G.phase==='reveal')body=`<div class="truth"><span>لحظة الحقيقة</span><b>الإجابة ستنكشف الآن…</b></div>`;
- else if(G.phase==='result')body=revealPanel();
- else body=finished();
- set(`<div class="bombApp presenter">${header('المقدم والحكم')}${teamsBar()}<main>${G.phase!=='question'&&G.phase!=='lobby'?`<div class="questionStrip"><span>السؤال</span><h1>${esc(G.question||'')}</h1></div>`:''}${G.phase!=='lobby'&&G.phase!=='question'?board():''}${body}</main><div class="hostBar"><button onclick="openDisplay()">🖥️ فتح شاشة العرض</button><button onclick="newQuestion()">🔄 تغيير السؤال</button><button onclick="leave()">خروج</button></div></div>`);
- if(G.phase==='question')tick(G.questionUntil,'questionTimer')
-}
-function display(){
- let body=G.phase==='lobby'?lobby():G.phase==='question'?questionBlock():G.phase==='answer'?turnPanel():G.phase==='judge'?`<div class="displayJudge"><span>🎙️ المقدم يحكم</span><b>${esc(G.current?.name||'')} أجاب الآن</b><small>انتظروا قرار المقدم…</small></div>`:G.phase==='reveal'?`<div class="truth"><span>لحظة الحقيقة</span><b>كشف الإجابة…</b></div>`:G.phase==='result'?revealPanel():finished();
- set(`<div class="bombApp display">${header('شاشة العرض')}${teamsBar()}<main>${G.phase!=='lobby'&&G.phase!=='question'?`<div class="questionStrip"><span>السؤال</span><h1>${esc(G.question||'')}</h1></div>`:''}${G.phase!=='lobby'&&G.phase!=='question'?board():''}${body}</main></div>`);
- if(G.phase==='question')tick(G.questionUntil,'questionTimer')
-}
 function player(){
  const p=G.players?.find(x=>x.id===me),t=G.teams?.find(x=>x.id===p?.team);
- let body=G.phase==='lobby'?lobby():G.phase==='question'?questionBlock():G.phase==='answer'?turnPanel():G.phase==='judge'?`<div class="displayJudge"><span>🎙️ المقدم يراجع</span><b>${G.current?.id===me?'تم إرسال إجابتك':'لاعب آخر يجيب'}</b><small>${G.mode==='1'?'المقدم هو الحكم.':'تم التصحيح تلقائيًا.'}</small></div>`:G.phase==='reveal'?`<div class="truth"><span>لحظة الحقيقة</span><b>انتظروا الكشف…</b></div>`:G.phase==='result'?revealPanel():finished();
- set(`<div class="bombApp player"><div class="playerIdentity"><span>${teamIcon(t?.id)} ${esc(t?.name||'')}</span><b>${esc(p?.name||'لاعب')}</b></div>${header('شاشة اللاعب')}${teamsBar()}<main>${G.phase!=='lobby'&&G.phase!=='question'?`<div class="questionStrip"><span>السؤال</span><h1>${esc(G.question||'')}</h1></div>`:''}${G.phase!=='lobby'&&G.phase!=='question'?board():''}${body}</main><button class="leaveBtn" onclick="leave()">خروج من الغرفة</button></div>`);
+ let body=G.phase==='lobby'?lobby():G.phase==='question'?questionBlock():G.phase==='answer'?turnPanel():G.phase==='judge'?`<div class="displayJudge"><span>⚡ يتم التصحيح تلقائيًا</span><b>${G.current?.id===me?'تم إرسال إجابتك':'الفريق الآخر يجيب'}</b><small>انتظروا لحظة الحقيقة…</small></div>`:G.phase==='reveal'?`<div class="truth"><span>لحظة الحقيقة</span><b>كشف الإجابة…</b></div>`:G.phase==='result'?revealPanel():finished();
+ set(`<div class="bombApp player"><div class="playerIdentity"><span>${teamIcon(t?.id)} ${esc(t?.name||'')}</span><b>${esc(p?.name||'لاعب')}</b></div>${header('شاشة اللاعبين')}${teamsBar()}<main>${G.phase!=='lobby'&&G.phase!=='question'?`<div class="questionStrip"><span>السؤال</span><h1>${esc(G.question||'')}</h1><div class="questionCounts"><b>${G.questionStats?.listed||G.answers?.length||0} إجابات</b><b>${G.questionStats?.traps||0} مفخخات</b><b>${G.questionStats?.extra||0} خارج اللوحة</b></div></div>`:''}${G.phase!=='lobby'&&G.phase!=='question'?board():''}${body}</main>${G.hostId===me&&G.phase!=='lobby'&&G.phase!=='finished'?`<button class="changeQuestion" onclick="newQuestion()">🔄 تغيير السؤال</button>`:''}<button class="leaveBtn" onclick="leave()">خروج من الغرفة</button></div>`);
  if(G.phase==='question')tick(G.questionUntil,'questionTimer')
 }
-function render(){if(!G)return;role==='presenter'?presenter():role==='display'?display():player()}
+function render(){if(G)player()}
 function startGame(){sound('click');socket.emit('bomb:start')}
-function openDisplay(){window.open('/games/bomb/display?code='+encodeURIComponent(code),'_blank')}
-function newQuestion(){if(confirm('تغيير السؤال والبدء من جديد؟'))socket.emit('bomb:changeQuestion')}
+function newQuestion(){if(confirm('تغيير السؤال؟ سيتم فتح سؤال جديد.'))socket.emit('bomb:changeQuestion')}
+function revealAnswer(index){if(G?.phase!=='answer')return;sound('click');socket.emit('bomb:reveal',{index})}
 function judge(index,outside){
  sound('click');
  if(outside){const v=document.getElementById('spokenInput')?.value?.trim()||prompt('تأكيد الإجابة الصحيحة خارج اللائحة:',G.submitted||'');if(!v)return;socket.emit('bomb:judge',{outside:true,index:-1,answer:v});}
@@ -113,15 +89,13 @@ function submitAnswer(){
  if(!v||G?.phase!=='answer'||G.current?.id!==me)return;
  socket.emit('bomb:submit',{answer:v,sessionToken,playerId:me},(err,res)=>{
    if(err||!res?.ok){toast(res?.reason==='not-your-turn'?'ليس دورك الآن':'تعذر إرسال الإجابة');return}
-   input.disabled=true;toast('✓ وصلت الإجابة للمقدم');
+   input.disabled=true;toast('✓ تم التصحيح تلقائيًا');
  });
 }
 function leave(){if(code)socket.emit('room:leave',{code});location.href='/'}
-socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='answer')sound('suspense');if(s.phase==='reveal')setTimeout(()=>sound(s.result?.kind==='trap'?'explosion':'reveal'),250);if(s.phase==='result')sound(s.result?.kind==='trap'?'explosion':s.result?.kind==='listed'||s.result?.kind==='outside'?'correct':'wrong');if(s.phase==='finished')sound('win')}render()});
+socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='answer')sound('suspense');if(s.phase==='reveal'){sound('suspense');setTimeout(()=>sound(s.result?.kind==='trap'?'explosion':'reveal'),2200);}if(s.phase==='result')sound(s.result?.kind==='trap'?'explosion':s.result?.kind==='listed'||s.result?.kind==='outside'?'correct':s.result?.kind==='revealed'?'reveal':'wrong');if(s.phase==='finished')sound('win')}render()});
 socket.on('joined',x=>{me=x.playerId;sessionToken=x.sessionToken||sessionToken;socket.emit('room:sync',{code});toast('✓ دخلت الغرفة')});
-socket.on('room:created',x=>{code=x.code;role=x.role;sessionToken=x.sessionToken||'';if(role==='presenter')history.replaceState({},'',`/games/bomb/presenter?code=${encodeURIComponent(code)}`);render()});
+socket.on('room:created',x=>{code=x.code;role='player';sessionToken=x.sessionToken||'';render()});
 socket.on('errorMsg',toast);
 socket.on('connect',()=>{if(code&&role==='player'&&sessionToken)socket.emit('room:resume',{code,sessionToken})});
-if(location.pathname.includes('/presenter')){role='presenter';if(code)socket.emit('room:presenter',{code})}
-else if(location.pathname.includes('/display')){role='display';if(code)socket.emit('room:display',{code})}
-else{role='player';const n=qp.get('name')||'لاعب',t=qp.get('team')==='B'?'B':'A',tok=qp.get('sessionToken')||'';if(code&&tok){sessionToken=tok;socket.emit('room:resume',{code,sessionToken:tok,name:n,team:t})}else if(code)socket.emit('room:join',{code,name:n,team:t})}
+role='player';const n=qp.get('name')||'لاعب',t=qp.get('team')==='B'?'B':'A',tok=qp.get('sessionToken')||'';if(code&&tok){sessionToken=tok;socket.emit('room:resume',{code,sessionToken:tok,name:n,team:t})}else if(code)socket.emit('room:join',{code,name:n,team:t})
