@@ -99,7 +99,7 @@ function bombSetTurnCountdown(g, orderIndex){
   g.turnIndex=((orderIndex%g.turnOrder.length)+g.turnOrder.length)%g.turnOrder.length;
   g.current={...g.turnOrder[g.turnIndex]};
   g.turnTeam=g.current.team;
-  g.answerSeconds=(g.turnIndex===0)?15:10;
+  g.answerSeconds=10;
   g.answerUntil=Date.now()+g.answerSeconds*1000;
   g.phase='answer';
   g.submitted=null;
@@ -109,7 +109,12 @@ function bombSetTurnCountdown(g, orderIndex){
   const round=g.round, playerId=g.current.id, until=g.answerUntil;
   setTimeout(()=>{
     if(g.phase==='answer'&&g.round===round&&g.current?.id===playerId&&g.answerUntil===until&&Date.now()>=until){
-      g.result={kind:'timeout',delta:0,answer:'',matched:null,team:g.current.team,player:g.current.name,timeout:true};
+      const timeoutPenalty=-10;
+      const timeoutTeam=g.teams.find(t=>t.id===g.current.team);
+      if(timeoutTeam)timeoutTeam.score=(timeoutTeam.score||0)+timeoutPenalty;
+      g.scores=g.scores||{};g.scores[g.current.id]=(g.scores[g.current.id]||0)+timeoutPenalty;
+      g.result={kind:'timeout',delta:timeoutPenalty,answer:'',matched:null,team:g.current.team,player:g.current.name,timeout:true};
+      g.history.push({round:g.round,player:g.current.name,team:g.current.team,question:g.question,answer:'',kind:'timeout',matched:null,delta:timeoutPenalty,auto:true});
       g.phase='result';g.answerUntil=0;broadcastBomb(g);
       setTimeout(()=>{
         if(g.phase==='result'&&g.result?.kind==='timeout'&&g.round===round){bombAdvanceTeam(g)}
