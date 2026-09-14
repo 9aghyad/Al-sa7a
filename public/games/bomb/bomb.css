@@ -8,7 +8,7 @@ button,input{font:inherit}button{border:0;cursor:pointer}.bombApp{width:min(1500
 .brand{display:flex;align-items:center;gap:12px}.bombLogo{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;font-size:31px;background:linear-gradient(145deg,#3a1722,#17111a);border:1px solid rgba(255,80,105,.28);animation:logoFloat 1.9s ease-in-out infinite}
 @keyframes logoFloat{50%{transform:translateY(-4px) rotate(-4deg)}}.brand b{display:block;font-size:22px}.brand small,.teamIdentity small{display:block;color:var(--muted);font-size:12px;margin-top:3px}.roundInfo,.roomCode{padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:#0b0f19;color:#dfe5f2}.roomCode{font-weight:900;letter-spacing:2px}
 .teamsBar{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}.teamCard{position:relative;padding:15px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.015));transition:.25s}.teamCard.active{transform:translateY(-2px);box-shadow:0 0 38px rgba(255,255,255,.07)}.teamCard.red.active{border-color:rgba(255,79,112,.6)}.teamCard.blue.active{border-color:rgba(74,167,255,.6)}
-.teamIdentity{display:flex;gap:10px;align-items:center}.teamIdentity>span{font-size:28px}.teamIdentity b{font-size:16px}.teamScore{position:absolute;left:15px;top:12px;font-size:27px}.teamMeta{display:flex;justify-content:space-between;margin-top:10px;color:var(--muted);font-size:12px}.turnNow{color:var(--gold);font-weight:900}.strikes{letter-spacing:3px;color:#ff6b7e}
+.teamIdentity{display:flex;gap:10px;align-items:center}.teamIdentity>span{font-size:28px}.teamIdentity b{font-size:16px}.teamScore{position:absolute;left:15px;top:12px;font-size:27px}.teamMeta{display:flex;justify-content:space-between;margin-top:10px;color:var(--muted);font-size:12px}.turnNow{color:var(--gold);font-weight:900}.strikes{display:none!important}
 main{padding:4px 0}.questionHero,.lobby,.judgePanel,.turnPanel,.revealPanel,.truth,.finished,.displayJudge{border:1px solid var(--line);border-radius:30px;background:linear-gradient(180deg,rgba(18,23,38,.97),rgba(7,10,17,.98));box-shadow:0 25px 80px rgba(0,0,0,.28)}
 .questionHero{text-align:center;padding:28px 18px;overflow:hidden}.floatingBomb{font-size:72px;animation:bombPulse 1.4s ease-in-out infinite;filter:drop-shadow(0 0 25px rgba(255,65,95,.25))}@keyframes bombPulse{50%{transform:scale(1.06) rotate(-5deg)}}.questionHero>span,.questionStrip>span,.eyebrow{color:var(--gold);font-size:13px;font-weight:900;letter-spacing:1px}.questionHero h1{font-size:clamp(30px,5vw,64px);margin:10px auto 18px;line-height:1.35;max-width:1100px}.questionMeta{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.questionMeta b{padding:8px 12px;border-radius:999px;background:#0b101b;border:1px solid var(--line);font-size:12px;color:#dfe5f2}.threeCountdown{margin:20px auto 0;width:112px;height:112px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid rgba(255,209,102,.5);background:radial-gradient(circle,#241d0c,#0c1019);box-shadow:0 0 35px rgba(255,209,102,.10)}.threeCountdown span{font-size:11px;color:var(--muted)}.threeCountdown b{font-size:48px;color:var(--gold);line-height:1}
 .questionStrip{padding:14px 18px;text-align:center;margin:12px 0;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.025)}.questionStrip h1{font-size:clamp(22px,3.2vw,42px);margin:6px 0 0}
@@ -78,3 +78,42 @@ main{padding:4px 0}.questionHero,.lobby,.judgePanel,.turnPanel,.revealPanel,.tru
  .player .answerFront{padding:11px}
  .player .answerFront div b{font-size:14px}
 }
+
+/* V5: compact, centered player UI */
+.player{width:min(1040px,94vw);margin:0 auto;text-align:center;overflow-x:hidden}
+.player main{display:flex;flex-direction:column;align-items:center;width:100%}
+.player .teamsBar,.player .questionStrip,.player .answerBoard,.player .turnPanel,.player .truth,.player .revealPanel,.player .finished,.player .lobby{width:100%;max-width:940px;margin-left:auto;margin-right:auto}
+.player .answerBoard{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.player .answerTile,.player .answerBack,.player .answerFront{min-height:92px}
+.player .answerBack{padding:10px}
+.player .answerBack b{font-size:38px}
+.player .answerFront{padding:11px;gap:8px}
+.player .answerFront div b{font-size:15px}
+.player .answerFront small{font-size:11px}
+.player .answerFront strong{font-size:17px}
+.player .revealAnswer{font-size:12px;padding:6px 10px;bottom:7px}
+.player .questionStrip{padding:11px 14px;margin-top:8px}
+.player .questionStrip h1{font-size:clamp(19px,3vw,32px);line-height:1.35}
+.player .turnPanel{padding:16px;max-width:610px}
+.player .answerForm{max-width:480px;margin:14px auto 4px}
+.player .answerForm input{font-size:17px;padding:12px 14px;min-height:48px}
+.player .answerForm button{padding:11px;font-size:15px}
+.answerTimer{width:62px;height:62px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;background:#0b101a;border:2px solid rgba(255,209,102,.55);box-shadow:0 0 20px rgba(255,209,102,.08)}
+.answerTimer span{display:none}.answerTimer b{font-size:25px;color:var(--gold)}
+.player .teamScore{font-size:24px}.player .teamCard{padding:12px}.player .teamIdentity>span{font-size:23px}
+.player .bombTop{margin-bottom:10px}.player .playerIdentity{margin-bottom:6px}
+.podium{position:relative;overflow:hidden;padding:34px 18px!important}
+.podium:before,.podium:after{content:'✦';position:absolute;font-size:28px;opacity:.45;animation:confettiFloat 2.2s ease-in-out infinite}
+.podium:before{right:10%;top:15%}.podium:after{left:12%;top:24%;animation-delay:.4s}
+.podiumTrophy{font-size:70px;animation:trophyBounce 1.4s ease-in-out infinite}.podiumFlag{font-size:46px;margin-top:-6px}.podium h1{font-size:clamp(25px,5vw,48px);margin:10px 0}.finalScores{display:flex;justify-content:center;gap:12px;margin:18px auto;max-width:360px}.finalScores>div{flex:1;padding:12px;border-radius:16px;background:#0b101a;border:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.finalScores b{font-size:24px}.winnerGlow{box-shadow:0 0 70px rgba(255,209,102,.12),0 25px 80px rgba(0,0,0,.3)}
+@keyframes trophyBounce{50%{transform:translateY(-8px) rotate(-3deg)}}@keyframes confettiFloat{50%{transform:translateY(12px) rotate(18deg)}}
+/* clearer explosion, less destructive shake */
+.explosionOverlay{background:radial-gradient(circle at center,rgba(255,245,190,.98) 0 4%,rgba(255,170,45,.98) 7%,rgba(255,60,20,.94) 16%,rgba(70,4,10,.97) 48%,rgba(0,0,0,.99) 78%);transform:scale(.82)}
+.explosionCore{font-size:clamp(120px,24vw,260px);animation:coreBlastStrong .8s cubic-bezier(.1,.8,.2,1) both}
+.explosionText{font-size:clamp(38px,8vw,82px);margin-top:245px}
+.explosionOverlay.active{animation:fullBlastStrong 1.55s ease-out both}
+@keyframes fullBlastStrong{0%{opacity:0;transform:scale(.82)}10%{opacity:1;transform:scale(1.04)}24%{opacity:1;transform:scale(1)}72%{opacity:1}100%{opacity:0;transform:scale(1.02)}}
+@keyframes coreBlastStrong{0%{transform:scale(.05);opacity:0}20%{transform:scale(1.4);opacity:1}45%{transform:scale(.95)}100%{transform:scale(1);opacity:1}}
+.screenShake{animation:phoneShakeClear .52s ease-out both}@keyframes phoneShakeClear{0%,100%{transform:none}18%{transform:translateX(-5px)}36%{transform:translateX(7px)}54%{transform:translateX(-6px)}72%{transform:translateX(4px)}}
+@media(max-width:700px){.player .answerBoard{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.player .answerTile,.player .answerBack,.player .answerFront{min-height:82px}.player .answerBack b{font-size:34px}.player .answerFront div b{font-size:13px}.player .answerFront strong{font-size:15px}.player .teamsBar{gap:8px}.player .teamCard{padding:10px}}
+@media(max-width:430px){.player{width:96vw}.player .bombTop{grid-template-columns:1fr}.player .roomCode,.player .roundInfo{grid-column:auto}.player .teamIdentity small{font-size:10px}.player .questionCounts b{font-size:10px;padding:6px 9px}}
