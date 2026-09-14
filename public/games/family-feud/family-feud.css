@@ -24,3 +24,55 @@
 /* A3 players-only reveal fallback */
 .revealAllBtn{display:block;width:min(420px,100%);margin:14px auto 0;font-size:18px}
 .scorePop{position:relative;z-index:2}
+
+
+/* Family Feud player screen — visual refresh only; gameplay/buttons remain unchanged */
+body:has(.ffPlayerBrand){
+  background:
+    radial-gradient(700px 320px at 50% -5%,rgba(38,137,255,.38),transparent 68%),
+    radial-gradient(420px 260px at 8% 18%,rgba(0,164,255,.20),transparent 70%),
+    radial-gradient(420px 260px at 92% 18%,rgba(255,48,77,.20),transparent 70%),
+    linear-gradient(180deg,#06153d 0%,#04102d 45%,#02081b 100%);
+}
+body:has(.ffPlayerBrand)::before,body:has(.ffPlayerBrand)::after{content:"";position:fixed;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(1px)}
+body:has(.ffPlayerBrand)::before{width:38vw;height:10px;left:2vw;top:7vh;background:linear-gradient(90deg,transparent,#168cff,transparent);box-shadow:0 0 45px #168cff, 0 0 90px rgba(22,140,255,.6)}
+body:has(.ffPlayerBrand)::after{width:38vw;height:10px;right:2vw;top:7vh;background:linear-gradient(90deg,transparent,#ff3654,transparent);box-shadow:0 0 45px #ff3654, 0 0 90px rgba(255,54,84,.55)}
+body:has(.ffPlayerBrand) .wrap{width:min(900px,100vw);padding:12px 10px}
+body:has(.ffPlayerBrand) #app.card{background:linear-gradient(180deg,rgba(3,19,54,.78),rgba(2,10,29,.94));border:1px solid rgba(45,145,255,.35);border-radius:30px;box-shadow:0 25px 90px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.08);padding:16px}
+.ffPlayerBrand{display:flex;align-items:center;justify-content:center;gap:14px;margin:2px auto 14px;padding:10px 24px;width:min(430px,92%);border-radius:999px;background:linear-gradient(180deg,#0b62c9,#06306f);border:3px solid #ffca37;box-shadow:0 0 0 5px rgba(255,202,55,.10),0 8px 30px rgba(0,94,210,.38),inset 0 2px 0 rgba(255,255,255,.18);font-size:clamp(25px,6vw,42px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.25)}
+.ffPlayerBrand span{color:#ffd447;font-size:.65em}
+body:has(.ffPlayerBrand) .teams{gap:10px;margin-bottom:15px}
+body:has(.ffPlayerBrand) .playerTeam{padding:10px 12px 9px;border-radius:22px;position:relative;overflow:hidden;box-shadow:0 12px 35px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.16)}
+body:has(.ffPlayerBrand) .playerTeam.a{background:linear-gradient(180deg,#d52d47,#751526);border-color:#ff405d;box-shadow:0 12px 35px rgba(180,20,50,.28),inset 0 1px 0 rgba(255,255,255,.18)}
+body:has(.ffPlayerBrand) .playerTeam.b{background:linear-gradient(180deg,#0877dc,#073c92);border-color:#28a0ff;box-shadow:0 12px 35px rgba(0,98,220,.28),inset 0 1px 0 rgba(255,255,255,.18)}
+body:has(.ffPlayerBrand) .playerTeam .teamName{text-align:center;font-size:clamp(16px,3.2vw,25px);margin-bottom:2px}
+body:has(.ffPlayerBrand) .playerTeam .scoreWrap{margin:0 auto 5px;width:80%;padding:2px 0;border-radius:999px;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.16)}
+body:has(.ffPlayerBrand) .playerTeam .score{font-size:clamp(34px,6vw,52px);line-height:1}
+body:has(.ffPlayerBrand) .playerTeam .strikes{font-size:12px;letter-spacing:3px;opacity:.75}
+.teamPlayers{display:flex;flex-direction:column;gap:3px;margin-top:5px}
+.teamPlayer{display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:5px;padding:5px 8px;border-radius:12px;background:rgba(0,0,0,.18);border-top:1px solid rgba(255,255,255,.08);font-size:clamp(12px,2.7vw,16px);font-weight:800}
+.teamPlayerIcon{font-size:10px;opacity:.8}.teamPlayerScore{min-width:26px;text-align:center;border-radius:999px;background:rgba(255,255,255,.12);padding:2px 6px;font-size:.85em}
+body:has(.ffPlayerBrand) .question{margin:12px auto 14px;padding:22px 18px;border-radius:25px;background:linear-gradient(180deg,#0a3f8c,#061e50);border:4px solid #ffca37;box-shadow:0 0 0 5px rgba(255,202,55,.08),0 15px 40px rgba(0,0,0,.35),inset 0 2px 0 rgba(255,255,255,.10);font-size:clamp(24px,5vw,42px);line-height:1.35}
+body:has(.ffPlayerBrand) .playerAnswers{grid-template-columns:1fr!important;gap:7px;margin-top:8px}
+body:has(.ffPlayerBrand) .playerAnswers .answer{min-height:62px;height:62px;border-radius:18px;padding:7px 48px 7px 16px;background:linear-gradient(180deg,#084a9e,#062b66);border:2px solid #168cff;box-shadow:0 7px 18px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.12)}
+body:has(.ffPlayerBrand) .playerAnswers .answer.hidden{font-size:26px}.playerAnswers .answerNo{left:10px;right:auto;background:#147ee5;border:2px solid #57b5ff;color:#fff;width:38px;height:38px}
+body:has(.ffPlayerBrand) .playerAnswers .answerMain{min-height:0;font-size:17px}.playerAnswers .answerMain b{font-weight:1000}
+body:has(.ffPlayerBrand) .revealAllBtn{margin:12px auto 0;min-height:58px;border-radius:18px;background:linear-gradient(135deg,#11d78d,#08a969);border:2px solid #49f1b1;box-shadow:0 8px 25px rgba(0,180,120,.25)}
+body:has(.ffPlayerBrand) .playerButtons{max-width:100%;margin:12px auto}.playerStage .playerButtons .smallAction,body:has(.ffPlayerBrand) .smallAction{border-radius:18px!important;min-height:56px!important;font-size:18px!important}
+body:has(.ffPlayerBrand) .input{background:#061735;border:2px solid #168cff;border-radius:16px;font-size:18px}
+body:has(.ffPlayerBrand) .timer{font-size:42px;color:#ffd447;text-shadow:0 0 18px rgba(255,212,71,.35)}
+body:has(.ffPlayerBrand) .buzzNotice{border-color:#ffca37;background:linear-gradient(180deg,#182d57,#0b1732);border-radius:18px}
+@media(max-width:760px){
+ body:has(.ffPlayerBrand) .wrap{padding:7px}
+ body:has(.ffPlayerBrand) #app.card{padding:10px;border-radius:24px}
+ .ffPlayerBrand{margin-bottom:9px;padding:7px 18px;font-size:27px;border-width:2px}
+ body:has(.ffPlayerBrand) .playerTeam{padding:8px 7px;border-radius:18px}
+ body:has(.ffPlayerBrand) .playerTeam .teamName{font-size:14px}
+ body:has(.ffPlayerBrand) .playerTeam .score{font-size:31px}
+ .teamPlayer{grid-template-columns:14px 1fr auto;padding:3px 5px;font-size:11px;border-radius:9px}
+ .teamPlayerScore{min-width:21px;padding:1px 4px}
+ body:has(.ffPlayerBrand) .question{padding:16px 11px;border-width:3px;border-radius:20px;font-size:23px;margin:8px auto 10px}
+ body:has(.ffPlayerBrand) .playerAnswers .answer{height:55px;min-height:55px;border-radius:15px}
+ body:has(.ffPlayerBrand) .playerAnswers .answerNo{width:34px;height:34px;font-size:13px}
+ body:has(.ffPlayerBrand) .playerAnswers .answerMain{font-size:15px}
+}
