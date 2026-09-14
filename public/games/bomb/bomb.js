@@ -5,7 +5,7 @@ code=(qp.get('code')||'').toUpperCase();
 const aud={
   click:new Audio('/audio/click.wav'), correct:new Audio('/audio/correct.wav'),
   wrong:new Audio('/audio/wrong.wav'), reveal:new Audio('/audio/reveal.wav'),
-  suspense:new Audio('/audio/suspense.wav'), explosion:new Audio('/audio/explosion.wav'),
+  suspense:new Audio('/audio/suspense_strong.wav'), explosion:new Audio('/audio/explosion.wav'),
   tick:new Audio('/audio/tick.wav'), win:new Audio('/audio/win.wav')
 };
 Object.values(aud).forEach(a=>{try{a.volume=.85}catch(e){}});
@@ -20,7 +20,7 @@ function teamsBar(){
  return `<div class="teamsBar">${(G.teams||[]).map(t=>`<div class="teamCard ${t.id==='A'?'red':'blue'} ${G.turnTeam===t.id?'active':''}">
    <div class="teamIdentity"><span>${teamIcon(t.id)}</span><div><b>${esc(teamName(t.id))}</b><small>${(t.players||[]).map(p=>esc(p.name)).join(' • ')||'بانتظار لاعب'}</small></div></div>
    <strong class="teamScore">${t.score||0}</strong>
-   <div class="teamMeta">${G.turnTeam===t.id&&G.phase==='answer'?'<span class="turnNow">دور الفريق الآن</span>':''}<span class="strikes">${'✕'.repeat(t.strikes||0)}${'○'.repeat(3-(t.strikes||0))}</span></div>
+   <div class="teamMeta">${G.turnTeam===t.id&&G.phase==='answer'?'<span class="turnNow">دور الفريق الآن</span>':'<span>النقاط</span>'}<span class="scoreDeltaHint">${t.score||0}</span></div>
  </div>`).join('')}</div>`
 }
 function header(label){
@@ -40,7 +40,7 @@ function turnPanel(){
  const mine=G.current?.id===me;
  return `<section class="turnPanel ${mine?'mine':''}">
    <div class="turnTop"><span>${teamIcon(G.current?.team)} ${mine?'دورك الآن':'الدور الآن'}</span><b>${esc(G.current?.name||'')}</b></div>
-   ${mine?`<form onsubmit="event.preventDefault();submitAnswer()" class="answerForm"><input id="answerInput" autocomplete="off" autofocus placeholder="اكتب إجابتك هنا…"><button>إرسال الإجابة ↵</button><small>التصحيح تلقائي • لا يوجد مؤقت 10 ثوانٍ</small></form>`:`<div class="waitingPlayer"><div class="pulseDot"></div><b>${esc(G.current?.name||'اللاعب')} يجيب الآن</b><span>الفريق الآخر يشاهد…</span></div>`}
+   ${mine?`<form onsubmit="event.preventDefault();submitAnswer()" class="answerForm"><input id="answerInput" autocomplete="off" autofocus placeholder="اكتب إجابتك هنا…"><button>إرسال الإجابة ↵</button><small>التصحيح تلقائي • خذ وقتك في الإجابة</small></form>`:`<div class="waitingPlayer"><div class="pulseDot"></div><b>${esc(G.current?.name||'اللاعب')} يجيب الآن</b><span>الفريق الآخر يشاهد…</span></div>`}
  </section>`
 }
 function judgePanel(){
@@ -72,8 +72,17 @@ function finished(){
 function player(){
  const p=G.players?.find(x=>x.id===me),t=G.teams?.find(x=>x.id===p?.team);
  let body=G.phase==='lobby'?lobby():G.phase==='question'?questionBlock():G.phase==='answer'?turnPanel():G.phase==='judge'?`<div class="displayJudge"><span>⚡ يتم التصحيح تلقائيًا</span><b>${G.current?.id===me?'تم إرسال إجابتك':'الفريق الآخر يجيب'}</b><small>انتظروا لحظة الحقيقة…</small></div>`:G.phase==='reveal'?`<div class="truth"><span>لحظة الحقيقة</span><b>كشف الإجابة…</b></div>`:G.phase==='result'?revealPanel():finished();
- set(`<div class="bombApp player"><div class="playerIdentity"><span>${teamIcon(t?.id)} ${esc(t?.name||'')}</span><b>${esc(p?.name||'لاعب')}</b></div>${header('شاشة اللاعبين')}${teamsBar()}<main>${G.phase!=='lobby'&&G.phase!=='question'?`<div class="questionStrip"><span>السؤال</span><h1>${esc(G.question||'')}</h1><div class="questionCounts"><b>${G.questionStats?.listed||G.answers?.length||0} إجابات</b><b>${G.questionStats?.traps||0} مفخخات</b><b>${G.questionStats?.extra||0} خارج اللوحة</b></div></div>`:''}${G.phase!=='lobby'&&G.phase!=='question'?board():''}${body}</main>${G.hostId===me&&G.phase!=='lobby'&&G.phase!=='finished'?`<button class="changeQuestion" onclick="newQuestion()">🔄 تغيير السؤال</button>`:''}<button class="leaveBtn" onclick="leave()">خروج من الغرفة</button></div>`);
+ set(`<div class="bombApp player"><div id="explosionOverlay" class="explosionOverlay" aria-hidden="true"><div class="explosionCore">💥</div><div class="explosionText">مفخخة!</div></div><div class="playerIdentity"><span>${teamIcon(t?.id)} ${esc(t?.name||'')}</span><b>${esc(p?.name||'لاعب')}</b></div>${header('شاشة اللاعبين')}${teamsBar()}<main>${G.phase!=='lobby'&&G.phase!=='question'?`<div class="questionStrip"><span>السؤال</span><h1>${esc(G.question||'')}</h1><div class="questionCounts"><b>${G.questionStats?.listed||G.answers?.length||0} إجابات</b><b>${G.questionStats?.traps||0} مفخخات</b><b>${G.questionStats?.extra||0} خارج اللوحة</b></div></div>`:''}${G.phase!=='lobby'&&G.phase!=='question'?board():''}${body}</main>${G.hostId===me&&G.phase!=='lobby'&&G.phase!=='finished'?`<button class="changeQuestion" onclick="newQuestion()">🔄 تغيير السؤال</button>`:''}<button class="leaveBtn" onclick="leave()">خروج من الغرفة</button></div>`);
  if(G.phase==='question')tick(G.questionUntil,'questionTimer')
+}
+function triggerExplosion(){
+ const ov=document.getElementById('explosionOverlay');
+ const app=document.querySelector('.bombApp.player');
+ if(!ov)return;
+ ov.classList.remove('active'); void ov.offsetWidth; ov.classList.add('active');
+ app?.classList.remove('screenShake'); void app?.offsetWidth; app?.classList.add('screenShake');
+ if(navigator.vibrate) try{navigator.vibrate([90,45,140,35,220]);}catch(e){}
+ setTimeout(()=>ov.classList.remove('active'),1500);
 }
 function render(){if(G)player()}
 function startGame(){sound('click');socket.emit('bomb:start')}
@@ -93,7 +102,7 @@ function submitAnswer(){
  });
 }
 function leave(){if(code)socket.emit('room:leave',{code});location.href='/'}
-socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='answer')sound('suspense');if(s.phase==='reveal'){sound('suspense');setTimeout(()=>sound(s.result?.kind==='trap'?'explosion':'reveal'),2200);}if(s.phase==='result')sound(s.result?.kind==='trap'?'explosion':s.result?.kind==='listed'||s.result?.kind==='outside'?'correct':s.result?.kind==='revealed'?'reveal':'wrong');if(s.phase==='finished')sound('win')}render()});
+socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='answer')sound('suspense');if(s.phase==='reveal'){sound('suspense');setTimeout(()=>sound(s.result?.kind==='trap'?'explosion':'reveal'),2200);}if(s.phase==='result'){sound(s.result?.kind==='trap'?'explosion':s.result?.kind==='listed'||s.result?.kind==='outside'?'correct':s.result?.kind==='revealed'?'reveal':'wrong');if(s.result?.kind==='trap')setTimeout(triggerExplosion,40);}if(s.phase==='finished')sound('win')}render()});
 socket.on('joined',x=>{me=x.playerId;sessionToken=x.sessionToken||sessionToken;socket.emit('room:sync',{code});toast('✓ دخلت الغرفة')});
 socket.on('room:created',x=>{code=x.code;role='player';sessionToken=x.sessionToken||'';render()});
 socket.on('errorMsg',toast);

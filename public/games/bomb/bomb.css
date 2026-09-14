@@ -28,3 +28,53 @@ main{padding:4px 0}.questionHero,.lobby,.judgePanel,.turnPanel,.revealPanel,.tru
 .createLobby{max-width:1050px;margin:4vh auto}.modePicker{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:900px;margin:24px auto}.modeCard{padding:20px 14px;border:1px solid var(--line);border-radius:20px;background:#0b101a;color:#fff;text-align:right;transition:.2s}.modeCard b{display:block;font-size:16px}.modeCard small{display:block;color:var(--muted);margin-top:8px;line-height:1.6}.modeCard.selected{border-color:var(--gold);box-shadow:0 0 30px rgba(255,209,102,.08);transform:translateY(-2px)}.createFields{max-width:650px;margin:0 auto 18px;display:grid;gap:10px}.createFields input,.createFields select{width:100%;padding:15px;border-radius:14px;border:1px solid #354056;background:#080c15;color:#fff;text-align:center}.teamPick{display:grid;grid-template-columns:1fr 1fr;gap:10px}.teamChoice{padding:14px;border-radius:14px;background:#111827;color:#fff;border:1px solid var(--line);font-weight:900}.teamChoice.selected{border-color:var(--gold)}.joinBox{display:flex;gap:8px;max-width:650px;margin:14px auto 0}.joinBox input{flex:1;padding:14px;border-radius:14px;border:1px solid #354056;background:#080c15;color:#fff;text-align:center}.joinBox button{padding:14px 20px;border-radius:14px;background:#16233a;color:#fff;font-weight:900}@media(max-width:760px){.modePicker{grid-template-columns:1fr}.bombTop{grid-template-columns:1fr}.teamsBar,.answerBoard,.judgeAnswers{grid-template-columns:1fr}.judgeActions{grid-template-columns:1fr}.joinBox{flex-direction:column}}
 
 .revealAnswer{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);padding:8px 14px;border-radius:10px;border:1px solid rgba(255,209,102,.35);background:#151d2d;color:#ffd66a;font-weight:900;cursor:pointer}.answerBack{flex-direction:column;gap:4px}.changeQuestion,.changeQuestionLobby{margin:12px auto;padding:12px 18px;border-radius:14px;border:1px solid var(--line);background:#111827;color:#fff;font-weight:900;cursor:pointer}.questionCounts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}.questionCounts b{padding:7px 12px;border-radius:999px;background:#111827;border:1px solid var(--line);font-size:12px;color:#cbd5e1}.changeQuestionLobby{display:block;margin-top:12px;background:#111827;color:#ffd66a}
+/* تحديث واجهة اللاعبين: كل العناصر في المنتصف ومساحات أكثر راحة */
+.player{max-width:1180px;text-align:center}
+.player .bombTop{grid-template-columns:1fr 1fr 1fr;text-align:center}
+.player .brand{justify-content:center}
+.player .roomCode,.player .roundInfo{justify-self:center}
+.player .teamsBar{max-width:900px;margin-left:auto;margin-right:auto}
+.player .teamCard{text-align:center}
+.player .teamIdentity{justify-content:center}
+.player .teamIdentity>div{text-align:center}
+.player .teamScore{position:static;display:block;margin-top:8px;font-size:28px}
+.player .teamMeta{justify-content:center;min-height:18px}
+.player .scoreDeltaHint{color:var(--gold);font-weight:900}
+.player .answerBoard{max-width:920px;margin:16px auto}
+.player .answerForm{max-width:540px;margin:16px auto 8px}
+.player .answerForm input{padding:14px 16px;font-size:18px;min-height:52px}
+.player .answerForm button{padding:13px;font-size:16px}
+.player .turnPanel{max-width:650px;padding:18px;margin:14px auto}
+.player .turnTop b{font-size:20px}
+.player .waitingPlayer{padding:22px}
+.player .questionStrip{max-width:1000px;margin:12px auto}
+.player .questionStrip h1{font-size:clamp(20px,3vw,36px)}
+.player .questionCounts{margin-top:9px}
+.player .changeQuestion{display:block}
+.playerIdentity{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px;color:#dfe5f2}
+.playerIdentity span{padding:7px 12px;border-radius:999px;background:#0b101a;border:1px solid var(--line)}
+.playerIdentity b{font-size:15px}
+
+/* انفجار كامل الشاشة */
+.explosionOverlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;pointer-events:none;opacity:0;background:radial-gradient(circle at center,rgba(255,210,110,.95) 0 5%,rgba(255,80,35,.92) 10%,rgba(120,5,15,.88) 30%,rgba(0,0,0,.98) 75%);transform:scale(.7)}
+.explosionOverlay:before,.explosionOverlay:after{content:"";position:absolute;inset:-20%;background:conic-gradient(from 0deg,transparent 0 8deg,rgba(255,220,120,.9) 9deg 12deg,transparent 13deg 25deg,rgba(255,80,30,.75) 26deg 30deg,transparent 31deg 45deg);filter:blur(2px);animation:blastRays .5s linear infinite}
+.explosionOverlay:after{transform:rotate(17deg) scale(1.2);opacity:.65}
+.explosionCore{font-size:clamp(110px,28vw,300px);filter:drop-shadow(0 0 45px #ffb000);z-index:2;animation:coreBlast .65s cubic-bezier(.12,.8,.18,1) both}
+.explosionText{position:absolute;z-index:3;margin-top:280px;font-size:clamp(42px,10vw,100px);font-weight:1000;color:#fff;text-shadow:0 0 20px #000,0 0 40px #ff3b16;animation:boomText .8s ease both}
+.explosionOverlay.active{animation:fullBlast 1.35s cubic-bezier(.12,.72,.2,1) both}
+@keyframes fullBlast{0%{opacity:0;transform:scale(.7)}12%{opacity:1;transform:scale(1.08)}25%{opacity:1;transform:scale(1)}70%{opacity:1}100%{opacity:0;transform:scale(1.04)}}
+@keyframes blastRays{to{transform:rotate(360deg)}}
+@keyframes coreBlast{0%{transform:scale(.1) rotate(-25deg);opacity:0}25%{transform:scale(1.3) rotate(8deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+@keyframes boomText{0%{transform:scale(.2);opacity:0}30%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+.screenShake{animation:phoneShake .72s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes phoneShake{10%,90%{transform:translate3d(-5px,0,0) rotate(-.5deg)}20%,80%{transform:translate3d(8px,2px,0) rotate(.8deg)}30%,50%,70%{transform:translate3d(-12px,-2px,0) rotate(-1deg)}40%,60%{transform:translate3d(12px,3px,0) rotate(1deg)}}
+
+@media(max-width:800px){
+ .player .bombTop{grid-template-columns:1fr 1fr}
+ .player .brand{grid-column:1/-1}
+ .player .roomCode{grid-column:1/-1}
+ .player .answerBoard{gap:9px}
+ .player .answerTile,.player .answerBack,.player .answerFront{min-height:96px}
+ .player .answerFront{padding:11px}
+ .player .answerFront div b{font-size:14px}
+}
