@@ -76,3 +76,26 @@ body:has(.ffPlayerBrand) .buzzNotice{border-color:#ffca37;background:linear-grad
  body:has(.ffPlayerBrand) .playerAnswers .answerNo{width:34px;height:34px;font-size:13px}
  body:has(.ffPlayerBrand) .playerAnswers .answerMain{font-size:15px}
 }
+
+/* Family Feud players-only: hidden answers, per-answer reveal confirmation and feedback FX */
+body:has(.ffPlayerBrand) .playerAnswers .answer.hidden .answerMain b{color:#fff;font-size:26px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+body:has(.ffPlayerBrand) .playerAnswers .answer.hidden .answerMain .small{display:none!important}
+body:has(.ffPlayerBrand) .playerAnswers .answer.hidden{background:linear-gradient(180deg,#084a9e,#062b66);border-color:#168cff}
+.answerRevealBtn{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:1px solid rgba(255,213,91,.65);background:linear-gradient(135deg,#ffd95f,#e7a928);color:#1e1700;border-radius:12px;padding:8px 12px;font-weight:1000;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,.25);z-index:3}
+.answerRevealBtn:active{transform:translateY(-50%) scale(.96)}
+body:has(.ffPlayerBrand) .playerAnswers .answer.hidden{padding-right:92px}
+.ffModal{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.72);backdrop-filter:blur(7px);opacity:1;transition:opacity .16s ease}
+.ffModal.hiddenEl{display:none!important}
+.ffModalBox{width:min(430px,94vw);padding:28px 22px;border-radius:26px;background:linear-gradient(180deg,#102858,#07142f);border:2px solid #258fff;box-shadow:0 25px 90px rgba(0,0,0,.55),0 0 45px rgba(22,140,255,.18);text-align:center;transform:translateY(12px) scale(.94);opacity:0;transition:.18s ease}
+.ffModalBox.show{transform:none;opacity:1}
+.ffModalIcon{font-size:48px}.ffModalBox h3{font-size:24px;margin:10px 0 8px}.ffModalBox p{margin:0;color:#b9c7df;line-height:1.7}.ffModalActions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}.ffModalActions .btn{min-height:54px}
+.ffCenterFx{position:fixed;z-index:2800;left:50%;top:50%;transform:translate(-50%,-50%) scale(.55);opacity:0;text-align:center;pointer-events:none;padding:22px 28px;border-radius:28px;background:linear-gradient(180deg,rgba(8,34,76,.98),rgba(3,14,34,.98));border:3px solid #42e4a1;box-shadow:0 0 70px rgba(44,230,158,.3),0 25px 90px rgba(0,0,0,.5);transition:.28s cubic-bezier(.2,.8,.2,1)}
+.ffCenterFx.show{transform:translate(-50%,-50%) scale(1);opacity:1}.ffFxIcon{font-size:76px;line-height:1;color:#52f0aa;text-shadow:0 0 28px rgba(82,240,170,.6)}.ffFxTitle{font-size:clamp(25px,7vw,44px);font-weight:1000}.ffFxPoints{font-size:22px;color:#ffd95f;font-weight:1000;margin-top:5px}
+.ffCorrectPulse{animation:ffCorrectPulse .85s cubic-bezier(.2,.8,.2,1)!important;border-color:#52f0aa!important;box-shadow:0 0 0 4px rgba(82,240,170,.18),0 0 45px rgba(82,240,170,.38)!important}
+@keyframes ffCorrectPulse{0%{transform:scale(.9);filter:brightness(1)}45%{transform:scale(1.055);filter:brightness(1.65)}100%{transform:scale(1);filter:brightness(1)}}
+.ffStrikeFx{position:fixed;z-index:2900;left:50%;top:50%;transform:translate(-50%,-50%) scale(.35);opacity:0;pointer-events:none;text-align:center;color:#fff;filter:drop-shadow(0 0 22px rgba(255,40,70,.8))}
+.ffStrikeFx.fly{animation:ffStrikeFly 1.15s cubic-bezier(.16,.72,.2,1) forwards}
+.ffStrikeIcon{font-family:Arial,sans-serif;font-size:clamp(110px,26vw,220px);font-weight:1000;line-height:.8;color:#ff3658;text-shadow:0 0 18px #ff1740,0 0 45px rgba(255,20,50,.75)}
+.ffStrikeText{font-size:clamp(22px,6vw,42px);font-weight:1000;margin-top:18px}
+@keyframes ffStrikeFly{0%{opacity:0;transform:translate(-50%,-50%) scale(.35) rotate(-10deg)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(5deg)}35%{transform:translate(-50%,-50%) scale(1) rotate(-2deg)}100%{opacity:.95;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.24) rotate(0)}}
+@media(max-width:760px){.answerRevealBtn{right:7px;padding:7px 9px;font-size:12px;border-radius:10px}body:has(.ffPlayerBrand) .playerAnswers .answer.hidden{padding-right:78px}.ffModalActions{grid-template-columns:1fr}.ffModalBox{padding:24px 17px}}
