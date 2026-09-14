@@ -82,13 +82,13 @@ function triggerExplosion(){
  if(!ov)return;
  ov.classList.remove('active'); void ov.offsetWidth; ov.classList.add('active');
  app?.classList.remove('screenShake'); void app?.offsetWidth; app?.classList.add('screenShake');
- sound('explosion'); if(navigator.vibrate) try{navigator.vibrate([55,35,90,30,130]);}catch(e){}
+ if(navigator.vibrate) try{navigator.vibrate([55,35,90,30,130]);}catch(e){}
  setTimeout(()=>ov.classList.remove('active'),1500);
 }
 function render(){if(G)player()}
 function startGame(){sound('click');socket.emit('bomb:start')}
 function newQuestion(){if(confirm('تغيير السؤال؟ سيتم فتح سؤال جديد.'))socket.emit('bomb:changeQuestion')}
-function revealAnswer(index){if(G?.phase!=='answer')return;if(!confirm('هل أنت متأكد من كشف الإجابة؟\nسيتم كشفها للجميع ولن يحصل الفريق على نقاط.'))return;sound('click');socket.emit('bomb:reveal',{index})}
+function revealAnswer(index){if(G?.phase!=='answer')return;if(!confirm('هل أنت متأكد من كشف الإجابة؟\nسيتم كشفها للجميع ولن يحصل الفريق على نقاط.'))return;socket.emit('bomb:reveal',{index})}
 function judge(index,outside){
  sound('click');
  if(outside){const v=document.getElementById('spokenInput')?.value?.trim()||prompt('تأكيد الإجابة الصحيحة خارج اللائحة:',G.submitted||'');if(!v)return;socket.emit('bomb:judge',{outside:true,index:-1,answer:v});}
@@ -103,7 +103,7 @@ function submitAnswer(){
  });
 }
 function leave(){if(code)socket.emit('room:leave',{code});location.href='/'}
-socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='answer')sound('suspense');if(s.phase==='reveal'){sound('suspense');setTimeout(()=>sound(s.result?.kind==='trap'?'explosion':'reveal'),2200);}if(s.phase==='result'){sound(s.result?.kind==='trap'?'explosion':s.result?.kind==='listed'||s.result?.kind==='outside'?'correct':s.result?.kind==='revealed'?'reveal':'wrong');if(s.result?.kind==='trap')setTimeout(triggerExplosion,40);}if(s.phase==='finished'){sound('win');setTimeout(()=>sound('applause'),350)}}render()});
+socket.on('state',s=>{const old=G?.phase;G=s;if(old!==s.phase){if(s.phase==='question')sound('tick');if(s.phase==='answer')sound('suspense');if(s.phase==='result'){if(s.result?.kind!=='revealed')sound(s.result?.kind==='trap'?'explosion':s.result?.kind==='listed'||s.result?.kind==='outside'?'correct':'wrong');if(s.result?.kind==='trap')setTimeout(triggerExplosion,40);}if(s.phase==='finished'){sound('win');setTimeout(()=>sound('applause'),350)}}render()});
 socket.on('joined',x=>{me=x.playerId;sessionToken=x.sessionToken||sessionToken;socket.emit('room:sync',{code});toast('✓ دخلت الغرفة')});
 socket.on('room:created',x=>{code=x.code;role='player';sessionToken=x.sessionToken||'';render()});
 socket.on('errorMsg',toast);
