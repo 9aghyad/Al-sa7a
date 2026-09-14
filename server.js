@@ -36,10 +36,10 @@ function millionAdvance(g){if(!g.turnOrder?.length){g.turnPlayer=null;g.phase='f
 function pubMillion(g){return {...g,questions:undefined,playersState:Object.fromEntries(Object.entries(g.playersState).map(([id,x])=>[id,{...x,question:x.question?x.question.q:undefined,options:x.options}]))}}
 function pub(g){if(g.type==='family'){const teams=(g.teams||[]).map(t=>({...t,players:(g.players||[]).filter(p=>p.team===t.id).map(p=>({id:p.id,name:p.name,online:p.online!==false,status:p.online!==false?'online':(p.disconnectedAt&&Date.now()-p.disconnectedAt<DISCONNECT_GRACE_MS?'reconnecting':'away')}))}));return {...g,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false,disconnectedAt:p.disconnectedAt||null,status:p.online!==false?'online':(p.disconnectedAt&&Date.now()-p.disconnectedAt<DISCONNECT_GRACE_MS?'reconnecting':'away')})),teams,bank:undefined}}if(g.type==='guess')return null;if(g.type==='million')return pubMillion(g);return g}
 function broadcast(g){if(g.phase==='finished'&&!g.finishedAt)g.finishedAt=Date.now();if(g.type==='guess'){broadcastGuess(g);persistGames();return}if(g.type==='bomb'){broadcastBomb(g);persistGames();return}io.to(g.code).emit('state',pub(g));persistGames()}
-function bombPublicState(g,sid){const isHost=io.sockets.sockets.get(sid)?.data?.role==='presenter';const answers=(g.answers||[]).map(a=>isHost||a.revealed?{text:a.text,points:a.points,trap:isHost?a.trap:undefined,revealed:a.revealed,awarded:a.awarded}:({text:'',points:0,revealed:false,awarded:false}));const teams=(g.teams||[]).map(t=>({id:t.id,name:t.name,score:t.score,players:(t.players||[]).map(p=>({id:p.id,name:p.name,online:p.online!==false}))}));const out={...g,answers,teams,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false})),scores:g.scores,questionStats:{listed:(g.answers||[]).length,traps:(g.answers||[]).filter(a=>a.trap).length,extra:(g.extra||[]).length,round:g.round}};if(!isHost){out.extra=undefined;out.used=undefined}return out}
+function bombPublicState(g,sid){const isHost=io.sockets.sockets.get(sid)?.data?.role==='presenter';const answers=(g.answers||[]).map(a=>isHost||a.revealed?{text:a.text,points:a.points,trap:a.revealed?a.trap:undefined,revealed:a.revealed,awarded:a.awarded}:({text:'',points:0,revealed:false,awarded:false}));const teams=(g.teams||[]).map(t=>({id:t.id,name:t.name,score:t.score,players:(t.players||[]).map(p=>({id:p.id,name:p.name,online:p.online!==false}))}));const out={...g,answers,teams,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false})),scores:g.scores,questionStats:{listed:(g.answers||[]).length,traps:(g.answers||[]).filter(a=>a.trap).length,extra:(g.extra||[]).length,round:g.round}};if(!isHost){out.extra=undefined;out.used=undefined}return out}
 function emitBombState(g,sid){if(g&&sid&&io.sockets.sockets.has(sid))io.to(sid).emit('state',bombPublicState(g,sid))}
 function broadcastBomb(g){const room=io.sockets.adapter.rooms.get(g.code);if(!room)return;for(const sid of room)emitBombState(g,sid)}
-function emitBombStateToSocket(g,s){if(!g||g.type!=='bomb'||!s)return;const isHost=s.data?.role==='presenter';const answers=(g.answers||[]).map(a=>isHost||a.revealed?{text:a.text,points:a.points,trap:isHost?a.trap:undefined,revealed:a.revealed,awarded:a.awarded}:{text:'',points:0,revealed:false,awarded:false});const teams=(g.teams||[]).map(t=>({id:t.id,name:t.name,score:t.score,players:(t.players||[]).map(p=>({id:p.id,name:p.name,online:p.online!==false}))}));const out={...g,answers,teams,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false})),scores:g.scores,questionStats:{listed:(g.answers||[]).length,traps:(g.answers||[]).filter(a=>a.trap).length,extra:(g.extra||[]).length,round:g.round}};if(!isHost){out.extra=undefined;out.used=undefined}s.emit('state',out)}
+function emitBombStateToSocket(g,s){if(!g||g.type!=='bomb'||!s)return;const isHost=s.data?.role==='presenter';const answers=(g.answers||[]).map(a=>isHost||a.revealed?{text:a.text,points:a.points,trap:a.revealed?a.trap:undefined,revealed:a.revealed,awarded:a.awarded}:{text:'',points:0,revealed:false,awarded:false});const teams=(g.teams||[]).map(t=>({id:t.id,name:t.name,score:t.score,players:(t.players||[]).map(p=>({id:p.id,name:p.name,online:p.online!==false}))}));const out={...g,answers,teams,players:(g.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,online:p.online!==false})),scores:g.scores,questionStats:{listed:(g.answers||[]).length,traps:(g.answers||[]).filter(a=>a.trap).length,extra:(g.extra||[]).length,round:g.round}};if(!isHost){out.extra=undefined;out.used=undefined}s.emit('state',out)}
 function broadcastGuess(g){const room=io.sockets.adapter.rooms.get(g.code);if(!room)return;for(const sid of room){const out={...g,secret:undefined,players:g.players.map(p=>({...p,revealedWord:g.revealedBy[sid]?.[p.id]||null,guessed:!!g.guessed[p.id],score:g.scores[p.id]||0}))};io.to(sid).emit('state',out)}}
 function addPlayer(g,s,name,team,token){const cleanToken=String(token||'');const existing=cleanToken&&g.players.find(p=>p.sessionToken===cleanToken);if(existing){return restorePlayerIdentity(g,existing,s)}if(g.players.some(p=>p.socketId===s.id&&p.online!==false))return g.players.find(p=>p.socketId===s.id);let chosen=team==='B'?'B':'A';const p={id:'P'+crypto.randomBytes(10).toString('hex'),name:String(name||'').trim().slice(0,24)||'لاعب',team:chosen,sessionToken:sessionToken(),online:true,disconnectedAt:null,socketId:s.id};g.players.push(p);if(g.type==='family'||g.type==='bomb')g.teams.find(t=>t.id===p.team).players.push(p);if(g.type==='guess')g.scores[p.id]=0;if(g.type==='bomb')g.scores[p.id]=0;if(g.type==='million')millionInitPlayer(g,p);s.join(g.code);s.data={game:g.code,role:'player',pid:p.id,team:p.team,sessionToken:p.sessionToken};persistGames();return p}
 function startFF(g){let choices=g.bank.map((_,i)=>i).filter(i=>!g.usedQuestionIndexes.includes(i));if(!choices.length){g.usedQuestionIndexes=[];choices=g.bank.map((_,i)=>i)}const idx=choices[Math.floor(Math.random()*choices.length)];g.usedQuestionIndexes.push(idx);const q=g.bank[idx];g.currentRound++;g.questionIndex=idx;g.question=q.q;g.answers=q.a.map(x=>({text:x[0],points:x[1],revealed:false,awarded:false}));g.phase='question';g.lock=null;g.answerLock=null;g.teams.forEach(t=>{t.strikes=0;t.doubleActive=false;t.doublePlayer=''});broadcast(g)}
@@ -82,58 +82,73 @@ const bankQs=[
 ['اذكر 3 عواصم عربية',['الرياض','القاهرة','أبوظبي','الكويت','الدوحة','مسقط']],['اذكر 3 فواكه',['تفاح','موز','برتقال','عنب','تفاح','مانجو']],['اذكر 3 أكلات سعودية',['كبسة','مندي','جريش','قرصان','مرقوق']],['اذكر 3 رياضات',['كرة قدم','تنس','سباحة','جري','ملاكمة']],['اذكر 3 أشياء في السيارة',['مقعد','مكيف','مقود','شاحن','راديو']],['اذكر 3 حيوانات',['أسد','فيل','حصان','نمر','دولفين']],['اذكر 3 وظائف',['طبيب','مهندس','معلم','طيار','محاسب']],['اذكر 3 مشروبات',['ماء','قهوة','شاي','عصير','حليب']],['اذكر 3 أشياء في المطبخ',['ثلاجة','فرن','قدر','ملعقة','مقلاة']],['اذكر 3 دول عربية',['السعودية','مصر','الإمارات','الكويت','قطر']],['اذكر 3 مدن سعودية',['الرياض','جدة','مكة','الدمام','أبها']],['اذكر 3 لاعبين كرة قدم',['ميسي','رونالدو','صلاح','مبابي','نيمار']],['اذكر 3 أشياء في المكتب',['كمبيوتر','قلم','ورق','طابعة','كرسي']],['اذكر 3 أشياء في البحر',['ماء','سمك','رمل','موج','مرجان']],['اذكر 3 أشياء للمدرسة',['كتاب','دفتر','قلم','حقيبة','مسطرة']],['اذكر 3 أشياء للشتاء',['معطف','بطانية','مدفأة','شال','قفازات']],['اذكر 3 حلويات',['كنافة','دونات','كيك','آيس كريم','قطايف']],['اذكر 3 وسائل نقل',['سيارة','طائرة','قطار','حافلة','سفينة']],['اذكر 3 أشياء في الحمام',['صابون','منشفة','مرآة','شامبو','فرشاة']],['اذكر 3 أشياء في السفر',['جواز','شنطة','شاحن','ملابس','حذاء']],['اذكر 3 ألوان',['أحمر','أزرق','أخضر','أصفر','بنفسجي']],['اذكر 3 أشياء غالية',['ذهب','ألماس','ساعة','سيارة','يخت']],['اذكر 3 أفلام أو شخصيات',['باتمان','سبايدرمان','شريك','إلسا','هاري بوتر']],['اذكر 3 تطبيقات',['واتساب','يوتيوب','انستقرام','سناب','تيك توك']],['اذكر 3 أشياء في المطار',['جواز','طائرة','بوابة','حقيبة','تذكرة']],['اذكر 3 أشياء في الحفلة',['كيكة','موسيقى','طعام','هدايا','تصوير']],['اذكر 3 أشياء تفعلها قبل النوم',['تصفح الجوال','تنظيف الأسنان','قراءة','شرب ماء','إطفاء الأنوار']],['اذكر 3 أشياء تشتريها من المول',['ملابس','أحذية','عطر','هدايا','إلكترونيات']],['اذكر 3 أشياء في غرفة النوم',['سرير','وسادة','خزانة','مرآة','مصباح']],['اذكر 3 أشياء تجعل الناس سعداء',['العائلة','الأصدقاء','المال','النجاح','السفر']]
 ];
 function miniRoom(game,mode,maxRounds){const g={type:game,code:makeCode(game,mode),mode:(game==='bomb'?'3':(['1','2','3'].includes(String(mode))?String(mode):'1')),players:[],hostId:null,phase:'lobby',scores:{},round:0,maxRounds:Math.max(1,Math.min(30,Number(maxRounds)||10)),question:'',answers:[],current:null,used:[],history:[],turnIndex:0,turnOrder:[],turnPlayer:null,answerUntil:0,selectedRisk:{},balances:{},secured:{}};if(game==='bomb')g.teams=[{id:'A',name:'الفريق الأحمر',score:0,players:[]},{id:'B',name:'الفريق الأزرق',score:0,players:[]}];return g}
-function bombPickPlayer(g,team){const t=g.teams.find(x=>x.id===team);const ps=(t?.players||[]).filter(p=>p.online!==false);if(!ps.length)return null;const p=ps[Math.floor(Math.random()*ps.length)];return {id:p.id,name:p.name,team}}
-function bombSetTurnCountdown(g, team){
-  g.turnTeam=team;
-  g.current=bombPickPlayer(g,team);
-  if(!g.current){const other=team==='A'?'B':'A';g.turnTeam=other;g.current=bombPickPlayer(g,other)}
-  if(!g.current){g.phase='lobby';broadcastBomb(g);return false}
-  g.answerUntil=0;
+function bombBuildTurnOrder(g){
+  const a=(g.teams?.find(t=>t.id==='A')?.players||[]).filter(p=>p.online!==false);
+  const b=(g.teams?.find(t=>t.id==='B')?.players||[]).filter(p=>p.online!==false);
+  const order=[];
+  const max=Math.max(a.length,b.length);
+  for(let i=0;i<max;i++){
+    if(a[i]) order.push({id:a[i].id,name:a[i].name,team:'A'});
+    if(b[i]) order.push({id:b[i].id,name:b[i].name,team:'B'});
+  }
+  return order;
+}
+function bombSetTurnCountdown(g, orderIndex){
+  g.turnOrder=bombBuildTurnOrder(g);
+  if(!g.turnOrder.length){g.phase='lobby';g.current=null;broadcastBomb(g);return false}
+  g.turnIndex=((orderIndex%g.turnOrder.length)+g.turnOrder.length)%g.turnOrder.length;
+  g.current={...g.turnOrder[g.turnIndex]};
+  g.turnTeam=g.current.team;
+  g.answerSeconds=(g.turnIndex===0)?15:10;
+  g.answerUntil=Date.now()+g.answerSeconds*1000;
   g.phase='answer';
   g.submitted=null;
   g.lastSubmission=null;
   g.result=null;
-  g.timeoutHandledFor=null;
   broadcastBomb(g);
+  const round=g.round, playerId=g.current.id, until=g.answerUntil;
+  setTimeout(()=>{
+    if(g.phase==='answer'&&g.round===round&&g.current?.id===playerId&&g.answerUntil===until&&Date.now()>=until){
+      g.result={kind:'timeout',delta:0,answer:'',matched:null,team:g.current.team,player:g.current.name,timeout:true};
+      g.phase='result';g.answerUntil=0;broadcastBomb(g);
+      setTimeout(()=>{
+        if(g.phase==='result'&&g.result?.kind==='timeout'&&g.round===round){bombAdvanceTeam(g)}
+      },700);
+    }
+  },g.answerSeconds*1000+120);
   return true;
 }
 function scheduleBombQuestion(g){
   const round=g.round, until=g.questionUntil;
   setTimeout(()=>{
-    if(g.phase==='question'&&g.round===round&&until<=Date.now()){
-      const firstTeam=(g.teams.find(t=>t.id==='A')?.players||[]).some(p=>p.online!==false)?'A':'B';
-      bombSetTurnCountdown(g,firstTeam);
-    }
+    if(g.phase==='question'&&g.round===round&&until<=Date.now()) bombSetTurnCountdown(g,0);
   },3100);
 }
 function bombAdvanceTeam(g){
   if((g.answers||[]).length&&g.answers.every(a=>a.awarded)){
     if(g.round<g.maxRounds){
-      g.phase='lobby';g.current=null;g.answerUntil=0;broadcastBomb(g);
-      if(g.mode!=='1')setTimeout(()=>{if(g.phase==='lobby')bombStartRound(g)},500);
+      g.round++;
+      bombLoadQuestion(g);
+      broadcastBomb(g);
+      scheduleBombQuestion(g);
     }else{g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g)}
     return;
   }
-  const next=g.turnTeam==='A'?'B':'A';
-  g.turnTeam=next;
-  bombSetTurnCountdown(g,next);
+  const order=g.turnOrder?.length?g.turnOrder:bombBuildTurnOrder(g);
+  if(!order.length){g.phase='lobby';g.current=null;broadcastBomb(g);return}
+  bombSetTurnCountdown(g,(g.turnIndex+1)%order.length);
 }
 function bombLoadQuestion(g){
   let pool=bombQs.filter((_,i)=>!g.used.includes(i));
   if(!pool.length){g.used=[];pool=bombQs}
   const q=pool[Math.floor(Math.random()*pool.length)];
   g.used.push(bombQs.indexOf(q));
-
-  // كل سؤال يعرض 6 بطاقات ثابتة؛ عدد المفخخات يرتفع تدريجيًا.
   const source=(q.list||[]).slice(0,6);
   g.question=q.q;
-  g.answers=source.map(x=>({text:x[0],trap:!!x[1],points:Number(x[2])||q.p,revealed:false,awarded:false}));
-  const trapTarget=Math.min(4,2+Math.floor(Math.max(0,g.round-1)/4));
-  let traps=g.answers.filter(a=>a.trap);
-  g.answers.forEach(a=>{if(a.trap)a.trap=false;});
+  g.answers=source.map(x=>({text:x[0],trap:false,points:Number(x[2])||q.p,revealed:false,awarded:false}));
+  const trapTarget=Math.min(g.answers.length,2+Math.floor(Math.max(0,g.round-1)/3));
   const shuffled=g.answers.slice().sort(()=>Math.random()-.5);
-  const selected=shuffled.slice(0,trapTarget);
-  selected.forEach(a=>{a.trap=true;a.points=-[30,40,50,60][Math.min(trapTarget-1,3)];});
+  shuffled.slice(0,trapTarget).forEach((a,i)=>{a.trap=true;a.points=-[30,40,50,60][Math.min(trapTarget-1,3)]});
   g.answers=shuffled;
   g.extra=q.extra||[];g.points=q.p;g.result=null;g.submitted=null;g.revealIndex=-1;
   g.current=null;g.answerUntil=0;g.questionUntil=Date.now()+3000;g.phase='question';
@@ -148,7 +163,7 @@ function bombStartRound(g){
   if(onlineTeams.length<2)return false;
   if(g.round>=g.maxRounds){g.phase='finished';g.finishedAt=Date.now();broadcastBomb(g);return true}
   g.round++;
-  g.turnTeam='A';g.teamPlayerCursor=g.teamPlayerCursor||{A:0,B:0};
+  g.turnIndex=0;
   bombLoadQuestion(g);
   broadcastBomb(g);
   scheduleBombQuestion(g);
@@ -207,12 +222,11 @@ function scheduleBombTurn(g){}
  s.on('bomb:changeQuestion',()=>{
    const g=games.get(s.data?.game);
    if(!g||g.type!=='bomb'||s.data?.role!=='player')return;
-   if(g.hostId&&s.data?.pid!==g.hostId)return;
    if(g.phase==='finished'||g.phase==='lobby')return;
    g.teamPlayerCursor=g.teamPlayerCursor||{A:0,B:0};
    bombLoadQuestion(g);broadcastBomb(g);scheduleBombQuestion(g);
  });
- s.on('bomb:start',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||g.phase!=='lobby')return;if(g.mode==='1'&&s.data?.role!=='presenter')return;if(g.mode!=='1'&&s.data?.role!=='player')return;if(g.mode!=='1'&&g.hostId&&s.data?.pid!==g.hostId)return;if(!bombTeamsReady(g))return;bombStartRound(g);});
+ s.on('bomb:start',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='bomb'||g.phase!=='lobby'||s.data?.role!=='player')return;if(!bombTeamsReady(g))return;bombStartRound(g);});
  s.on('bomb:buzz',()=>{});
  s.on('bomb:submit',({answer,sessionToken:submittedToken,playerId}={},ack)=>{
    const done=(x)=>{try{ack?.(x)}catch(e){}};
