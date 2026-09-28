@@ -88,3 +88,7 @@
 .mafia-win .winner-replay{background:linear-gradient(135deg,#741624,#a92739);border-color:#c94b58}
 .citizen-win .winner-replay{background:rgba(255,255,255,.10);color:#fff}
 .mafia-balance-note{margin:12px 0;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.04);color:#cbd5e1;font-size:13px;text-align:center}.mafia-balance-note b{color:#fff}
+
+.player-ident{display:flex;align-items:center;gap:9px;min-width:0}.player-avatar{width:34px;height:34px;border-radius:11px;overflow:hidden;display:grid;place-items:center;background:#202b49;flex:none}.player-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+
+.mafiaHostSettings{position:relative}.mafiaHostSettings.hidden{display:none}.mafia-settings-float{display:block;margin:0 0 10px auto;width:42px;height:42px;border-radius:13px;border:1px solid rgba(255,255,255,.12);background:#171f31;color:#fff;font-size:19px;cursor:pointer}.mafiaHostSettings.hidden+.mafia-balance-note{margin-top:8px}
