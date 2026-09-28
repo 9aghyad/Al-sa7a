@@ -27,3 +27,64 @@
 @keyframes cinematicCard{0%{transform:perspective(900px) rotateX(9deg) scale(.82);opacity:0;filter:blur(10px)}55%{transform:perspective(900px) rotateX(-2deg) scale(1.03);opacity:1;filter:none}100%{transform:none}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(max-width:520px){.role-card{width:min(410px,91vw)}.role-card-frame{min-height:560px}.role-image-wrap{height:355px;flex-basis:355px}.role-card-bottom{min-height:190px;padding:15px 19px 23px}.role-card-desc{font-size:14px}.role-index{font-size:12px}}
+
+/* Final cinematic polish */
+.role-screen{background:
+ radial-gradient(circle at 50% 18%,rgba(204,145,72,.16),transparent 24%),
+ radial-gradient(circle at 15% 70%,rgba(95,24,31,.20),transparent 28%),
+ linear-gradient(180deg,#080b10 0%,#11151b 48%,#06070a 100%);}
+.role-screen:after,.winner-screen:after{opacity:.10;background-image:linear-gradient(90deg,transparent 0 49%,rgba(231,201,151,.08) 50%,transparent 51%),linear-gradient(0deg,transparent 0 49%,rgba(231,201,151,.05) 50%,transparent 51%);background-size:80px 80px;mask-image:none}
+.role-screen:before,.winner-screen:before{background:
+ radial-gradient(circle at 8% 24%,rgba(218,153,75,.15),transparent 18%),
+ radial-gradient(circle at 92% 35%,rgba(126,25,34,.16),transparent 20%),
+ linear-gradient(115deg,transparent 0 42%,rgba(255,255,255,.025) 50%,transparent 58%);}
+.cinema-title{font-size:clamp(28px,6vw,48px);letter-spacing:.5px;color:#efe5d6;text-shadow:0 3px 20px #000;margin-bottom:8px}
+.role-stage{width:min(440px,94vw);min-height:590px;align-items:center}
+.role-card{width:min(420px,92vw);padding:8px;border-radius:3px;background:#0a0c10;border:1px solid #9a815a;box-shadow:0 35px 110px #000e,0 0 0 1px #201b16,0 0 0 3px rgba(141,112,69,.22);}
+.role-card:before{inset:7px;border-color:rgba(236,216,181,.55)}
+.role-card:after{font-size:16px;padding:0 7px;background:#0b0d11}
+.role-card-frame{min-height:590px;border-radius:0;background:#090b0e}
+.role-card-top{top:14px;left:15px;right:15px}
+.role-brand{background:rgba(10,12,16,.86);border:1px solid rgba(230,207,167,.48);color:#f0d5a3;padding:5px 9px;font-size:10px;letter-spacing:1px}
+.role-image-wrap{height:405px;flex-basis:405px;background:#080a0d}
+.role-card img{filter:saturate(.62) contrast(1.18) brightness(.72);transform:scale(1.035)}
+.image-shade{background:linear-gradient(180deg,rgba(0,0,0,.04),transparent 42%,rgba(3,4,6,.18) 62%,#090b0e 100%),linear-gradient(90deg,rgba(4,5,7,.18),transparent 24%,transparent 76%,rgba(4,5,7,.25))}
+.role-card-bottom{padding:17px 25px 27px;min-height:185px;background:linear-gradient(180deg,#090b0e,#0a0c10);}
+.role-team{font-size:12px;padding:6px 12px;margin-bottom:8px}
+.role-card-name{font-size:clamp(42px,9vw,58px);line-height:.98;text-shadow:0 4px 18px #000}
+.role-card-desc{font-size:14px;line-height:1.8;color:#ded8ce}
+.team-mafia .role-team{box-shadow:0 0 24px rgba(170,25,37,.12)}
+.team-city .role-team{box-shadow:0 0 24px rgba(206,155,70,.10)}
+.role-caption{font-size:16px;color:#bdb5ab;margin-top:8px}
+.progress{width:min(420px,78vw);background:#1b1e24}
+.progress i{background:linear-gradient(90deg,#8e202d,#e1b05e)}
+
+/* Subtle phase ambience; no kill/protection-specific sounds are triggered. */
+.night-page:before{background:radial-gradient(circle at 50% 20%,rgba(75,31,48,.30),transparent 28%),radial-gradient(circle at 10% 80%,rgba(28,47,67,.16),transparent 30%),linear-gradient(160deg,#05070b,#12131a 55%,#07080b)}
+.day-page:before{background:radial-gradient(circle at 50% 12%,rgba(211,157,77,.18),transparent 26%),radial-gradient(circle at 85% 80%,rgba(87,47,31,.16),transparent 25%),linear-gradient(180deg,#101318,#15151a 52%,#0a0b0e)}
+.early-card{border-color:#5b4b37;background:linear-gradient(145deg,rgba(27,25,25,.92),rgba(11,13,18,.96));box-shadow:0 20px 60px #0007}
+
+/* Full-screen winner reveal */
+.winner-screen{min-height:100svh;padding:24px 18px;background:#06080b;display:grid;place-items:center}
+.winner-content{position:relative;z-index:2;width:min(780px,94vw);padding:38px 22px 34px;text-align:center;border:1px solid rgba(230,207,167,.28);background:linear-gradient(180deg,rgba(18,20,25,.72),rgba(5,7,10,.86));box-shadow:0 40px 120px #000b,0 0 0 1px rgba(255,255,255,.03);animation:winnerPanel .9s cubic-bezier(.16,1,.3,1)}
+.winner-kicker{font-size:14px;letter-spacing:5px;color:#a9a39b;text-transform:uppercase;margin-bottom:12px}
+.winner-word{font-size:clamp(68px,16vw,160px);line-height:.9;letter-spacing:-3px;text-shadow:0 12px 40px #000}
+.winner-line{width:min(240px,55vw);height:2px;margin:26px auto 20px;background:currentColor;opacity:.55}
+.winner-sub{font-size:16px;color:#b9b3aa;margin-bottom:13px}
+.winner-players{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:auto;width:min(620px,100%)}
+.winner-players span{padding:9px 14px;border:1px solid rgba(236,216,181,.25);background:rgba(255,255,255,.045);border-radius:999px;color:#f4eee4;font-weight:800}
+.winner-note{margin-top:22px;color:#8e8d93;font-size:12px}
+.mafia-win{background:radial-gradient(circle at 50% 40%,rgba(118,12,25,.42),transparent 38%),#050609}
+.mafia-win .winner-word{color:#e73449;text-shadow:0 0 40px rgba(217,25,49,.22),0 12px 40px #000}
+.mafia-win .winner-line{color:#c6293d}
+.citizen-win{background:radial-gradient(circle at 50% 40%,rgba(177,184,197,.16),transparent 38%),#07090c}
+.citizen-win .winner-word{color:#f4f2ed;text-shadow:0 0 38px rgba(240,240,240,.12),0 12px 40px #000}
+.citizen-win .winner-line{color:#eee8db}
+.jester-win{background:radial-gradient(circle at 50% 40%,rgba(116,46,146,.28),transparent 38%),#07060a}
+.jester-win .winner-word{color:#d9b1f2}
+@keyframes winnerPanel{from{opacity:0;transform:translateY(30px) scale(.94);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+@media(max-width:520px){.role-stage{min-height:560px}.role-card-frame{min-height:555px}.role-image-wrap{height:365px;flex-basis:365px}.role-card-bottom{min-height:182px;padding:15px 19px 23px}.role-card-name{font-size:42px}.winner-content{padding:32px 16px}.winner-players span{font-size:13px}}
+.winner-replay{width:min(320px,88vw);margin:22px auto 0;padding:12px 18px;font-weight:900;background:rgba(255,255,255,.08);border-color:rgba(236,216,181,.3)}
+.mafia-win .winner-replay{background:linear-gradient(135deg,#741624,#a92739);border-color:#c94b58}
+.citizen-win .winner-replay{background:rgba(255,255,255,.10);color:#fff}
+.mafia-balance-note{margin:12px 0;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.04);color:#cbd5e1;font-size:13px;text-align:center}.mafia-balance-note b{color:#fff}
