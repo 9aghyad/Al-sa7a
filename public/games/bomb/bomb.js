@@ -60,11 +60,15 @@ function revealPanel(){
    <small>${k==='trap'?'انفجرت الإجابة!':k==='outside'?'صحيحة لكن ليست ضمن الإجابات الأساسية':k==='revealed'?'تم كشف الإجابة دون نقاط':k==='timeout'?'انتهى الوقت وانتقل الدور':'النقاط أضيفت/خُصمت من الفريق'}</small>
  </section>`
 }
-function lobby(){
- const ready=(G.teams||[]).every(t=>(t.players||[]).some(p=>p.online!==false));
- const isHost=true;
- return `<section class="lobby"><div class="lobbyBomb">💣</div><span class="eyebrow">غرفة المفخخة</span><h1>${G.round?'الجولة التالية':'جاهزون؟'}</h1><p>${ready?'الفريقان جاهزان. صاحب الغرفة يبدأ اللعبة.':'لا يمكن بدء اللعبة حتى يدخل لاعب من الفريق الأحمر ولاعب من الفريق الأزرق.'}</p><div class="readyGrid">${(G.teams||[]).map(t=>`<div><span>${teamIcon(t.id)}</span><b>${esc(teamName(t.id))}</b><small>${(t.players||[]).filter(p=>p.online!==false).map(p=>esc(p.name)).join(' • ')||'بانتظار لاعب'}</small></div>`).join('')}</div><button class="startGame" onclick="startGame()" ${ready?'':'disabled'}>🚀 ${G.round?'بدء الجولة':'بدء اللعبة'}</button><button class="changeQuestionLobby" onclick="newQuestion()">🔄 تغيير السؤال</button></section>`
+function roomTools(){
+ let h='<div class="bombSettings"><h3>🏠 إدارة الغرفة</h3><div class="small">'+(G.players||[]).filter(p=>p.online!==false).length+'/'+(G.roomMaxPlayers||40)+' لاعبين • '+(G.roomLocked?'🔒 مقفلة':'🟢 مفتوحة')+'</div><div class="row" style="margin-top:10px"><button class="btn dark" onclick="navigator.clipboard?.writeText(G.code);toast(\'تم نسخ الكود\')">📋 نسخ الكود</button>';
+ if(G.isHost) h+='<button class="btn dark" onclick="socket.emit(\'room:lock\',{locked:!G.roomLocked})">'+(G.roomLocked?'🔓 فتح':'🔒 قفل')+'</button>';
+ h+='</div>';
+ if(G.isHost){h+='<label style="display:block;margin-top:10px">الحد الأقصى<select class="input" onchange="socket.emit(\'room:setMaxPlayers\',{max:+this.value})">';[4,6,8,10,12,16,20,30,40].forEach(n=>h+='<option value="'+n+'" '+((G.roomMaxPlayers||40)===n?'selected':'')+'>'+n+' لاعبين</option>');h+='</select></label>';}
+ return h+'</div>';
 }
+function lobby(){const ready=(G.teams||[]).every(t=>(t.players||[]).some(p=>p.online!==false));const mine=G.players?.find(p=>p.id===me);return `<section class="lobby"><div class="lobbyBomb">💣</div><span class="eyebrow">غرفة المفخخة</span><h1>${G.round?'الجولة التالية':'جاهزون؟'}</h1><p>${ready?'الفريقان جاهزان. صاحب الغرفة يبدأ اللعبة.':'لا يمكن بدء اللعبة حتى يدخل لاعب من الفريق الأحمر ولاعب من الفريق الأزرق.'}</p>${roomTools()}<div class="readyGrid">${(G.teams||[]).map(t=>`<div><span>${teamIcon(t.id)}</span><b>${esc(teamName(t.id))}</b><small>${(t.players||[]).filter(p=>p.online!==false).map(p=>esc(p.name)).join(' • ')||'بانتظار لاعب'}</small><small>👑 ${esc(t.players?.find(p=>p.id===t.captainId)?.name||'لم يحدد')}</small>${G.isHost&&t.players?.length?`<select class="input mini" onchange="setBombCaptain('${t.id}',this.value)"><option value="">اختيار القائد</option>${t.players.filter(p=>p.online!==false).map(p=>`<option value="${p.id}" ${t.captainId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`:''}${mine?.team!==t.id?`<button class="teamSwitch" onclick="setBombTeam('${t.id}')">الانضمام هنا</button>`:''}</div>`).join('')}</div><div class="bombReadyBar"><b>${mine?.ready===false?'🔴 غير جاهز':'🟢 جاهز'}</b><button class="btn dark" onclick="socket.emit('room:ready',{ready:${mine?.ready===false?'true':'false'}})">${mine?.ready===false?'أنا جاهز':'إلغاء الجاهزية'}</button></div>${G.isHost?`<div class="bombSettings"><h3>⚙️ إعدادات اللعبة</h3><label>عدد الجولات<select id="bombRounds"><option value="5" ${G.maxRounds===5?'selected':''}>5</option><option value="10" ${G.maxRounds===10?'selected':''}>10</option><option value="15" ${G.maxRounds===15?'selected':''}>15</option><option value="20" ${G.maxRounds===20?'selected':''}>20</option><option value="30" ${G.maxRounds===30?'selected':''}>30</option></select></label><button class="btn gold full" onclick="saveBombConfig()">حفظ الإعدادات</button></div>`:''}<button class="startGame" onclick="startGame()" ${ready?'':'disabled'}>🚀 ${G.round?'بدء الجولة':'بدء اللعبة'}</button><button class="changeQuestionLobby" onclick="newQuestion()">🔄 تغيير السؤال</button></section>`}
+
 function finished(){
  const a=G.teams?.[0],b=G.teams?.[1],win=a?.score===b?.score?null:(a?.score>b?.score?a:b);
  return `<section class="finished podium ${win?'winnerGlow':''}><div class="podiumTrophy">🏆</div><div class="podiumFlag">${win?teamIcon(win.id):'🤝'}</div><span class="eyebrow">نهاية المباراة</span><h1>${win?`الفريق الفائز هو ${esc(teamName(win.id))}`:'تعادل الفريقان!'}</h1><div class="finalScores"><div><span>🔴</span><b>${a?.score||0}</b></div><div><span>🔵</span><b>${b?.score||0}</b></div></div><p>${win?'مبروك! أداء رائع 👏':'جولة قوية من الفريقين 👏'}</p></section>`
@@ -86,6 +90,8 @@ function triggerExplosion(){
  setTimeout(()=>ov.classList.remove('active'),1500);
 }
 function render(){if(G)player()}
+function setBombTeam(t){sound('click');socket.emit('bomb:setTeam',{team:t})}
+function saveBombConfig(){sound('click');socket.emit('bomb:config',{maxRounds:+document.getElementById('bombRounds').value})}
 function startGame(){sound('click');socket.emit('bomb:start')}
 function newQuestion(){if(confirm('تغيير السؤال؟ سيتم فتح سؤال جديد.'))socket.emit('bomb:changeQuestion')}
 function revealAnswer(index){if(G?.phase!=='answer')return;if(!confirm('هل أنت متأكد من كشف الإجابة؟\nسيتم كشفها للجميع ولن يحصل الفريق على نقاط.'))return;socket.emit('bomb:reveal',{index})}
