@@ -1,24 +1,15 @@
-# الساحة 2.0 — Foundation Pass
+# الساحة 2.0 — Stage 13: Unified Design System
 
-هذه النسخة هي أول دفعة من إعادة تطوير الساحة إلى منصة ألعاب جماعية متكاملة.
+This stage adds a shared visual system across the site and games.
 
-## ما تم في هذه الدفعة
-- توحيد تجربة الصفحة الرئيسية وإظهار حالة تطوير الألعاب.
-- إضافة واجهة تعريفية لمسار «بطل الساحة».
-- إضافة خارطة طريق داخل الواجهة بدل التعامل مع الألعاب كصفحات منفصلة.
-- تحسين تجربة «مواجهة» بحيث يكون الوقت هو العامل الحاسم في الجولة.
-- منع انتهاء جولة مواجهة بسبب نفاد الصور؛ يتم تدوير المحتوى وإعادة استخدام الفئة عند الحاجة مع تقليل التكرار القريب.
-- إضافة QR موحد للغرف عبر `/api/qr?code=XXXX`، وإظهاره في شاشة انتظار مواجهة.
-- تحسين شاشة نتيجة مواجهة لتوضيح أن الوقت هو الحاسم بدل الاعتماد على عدد الإجابات.
-- الحفاظ على نظام الغرف والجلسات وإعادة الاتصال الموجود.
+## Included
+- Shared `/shared/arena-ui.css` design system for panels, lobby/settings layouts, actions, TV mode, phone mode, focus states, responsive spacing and reduced-motion support.
+- Shared connection indicator now reflects both browser network state and Socket.IO connection state.
+- Connection indicator is injected once and updates automatically.
+- Shared design stylesheet and connection behavior are included across existing HTML game pages.
+- Homepage gets a compact unified Arena 2.0 top bar.
+- No game room protocol was replaced; existing room/reconnect systems remain in place.
 
-## خطة الساحة 2.0
-1. صقل نظام الغرف والانضمام وإعادة الاتصال.
-2. إنهاء صقل الألعاب الحالية: مافيا، مواجهة، فاميلي فيود، خمنها، المفخخة، السوق، الصملة، المليون.
-3. مراجعة المحتوى والصور والأسئلة والصعوبة والتكرار.
-4. إضافة ألعاب اجتماعية جديدة مثل «مين الكذاب؟» و«القنبلة» و«أسرع واحد» و«الذاكرة» و«لا تقول الكلمة».
-5. بناء بطولة «بطل الساحة» على مستوى الغرفة.
-6. لاحقًا: ملفات اللاعبين، الإنجازات، الإحصائيات، البطولات والأحداث الموسمية.
-
-## ملاحظة اختبار
-تم فحص JavaScript وNode syntax محليًا. لم يتم إجراء اختبار متعدد الأجهزة أو تشغيل Render في هذه البيئة لأن تثبيت dependencies عبر npm انتهى بمهلة زمنية.
+## Validation
+- Syntax checks should be run with Node in an environment where dependencies are installed.
+- This environment may not have `node_modules`, so live multi-device testing is not claimed.
