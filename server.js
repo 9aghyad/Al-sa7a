@@ -1,6 +1,16 @@
 const express=require('express');const http=require('http');const crypto=require('crypto');const fs=require('fs');const {Server}=require('socket.io');const path=require('path');const QRCode=require('qrcode');
 let dbPool=null;try{const {Pool}=require('pg');if(process.env.DATABASE_URL){dbPool=new Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_URL.includes('localhost')?false:{rejectUnauthorized:false},connectionTimeoutMillis:3000,idleTimeoutMillis:10000,statement_timeout:5000,max:2});}}catch(e){console.error('Postgres optional init failed:',e.message)}
-const dbReady=dbPool?dbPool.query(`CREATE TABLE IF NOT EXISTS saha_draw_rooms (code TEXT PRIMARY KEY, state JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`).then(()=>true).catch(e=>{console.error('Draw DB init failed:',e.message);return false}):Promise.resolve(false);
+let drawDbReady=false,drawDbInitPromise=null;
+async function ensureDrawDb(){
+  if(!dbPool)return false;
+  if(drawDbReady)return true;
+  if(drawDbInitPromise)return drawDbInitPromise;
+  drawDbInitPromise=dbPool.query(`CREATE TABLE IF NOT EXISTS saha_draw_rooms (code TEXT PRIMARY KEY, state JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
+    .then(()=>{drawDbReady=true;return true})
+    .catch(e=>{console.error('Draw DB init failed:',e.message);return false})
+    .finally(()=>{drawDbInitPromise=null});
+  return drawDbInitPromise;
+}
 const app=express();app.set('trust proxy',1);const server=http.createServer(app),io=new Server(server,{perMessageDeflate:false});app.use(express.static(path.join(__dirname,'public'),{maxAge:0}));app.get('/health',(_,r)=>r.json({ok:true}));
 app.get(['/games/champion','/games/champion/'],(_,r)=>r.sendFile(path.join(__dirname,'public','games','champion','index.html')));
 app.get('/api/qr',async(req,res)=>{try{const code=String(req.query.code||'').trim().toUpperCase();if(!/^[A-Z0-9]{3,6}$/.test(code))return res.status(400).send('bad code');const base=`${req.protocol}://${req.get('host')}`;const joinUrl=`${base}/player?code=${encodeURIComponent(code)}`;const data=await QRCode.toBuffer(joinUrl,{type:'png',width:420,margin:2,errorCorrectionLevel:'M',color:{dark:'#111827',light:'#ffffff'}});res.type('png').send(data)}catch(e){res.status(500).send('qr error')}});app.get(['/player','/display','/presenter'],(_,r)=>r.sendFile(path.join(__dirname,'public','index.html')));
@@ -467,12 +477,15 @@ let drawDbTimers=new Map();
 function drawDbSnapshot(g){
  const x=JSON.parse(JSON.stringify(g));
  (x.players||[]).forEach(p=>{p.socketId=null;p.online=false;p.disconnectedAt=p.disconnectedAt||Date.now()});
- x.strokes=[];x.fills=[];
+ // Keep the authoritative drawing so a reconnect/reload can restore the current round.
+ x.strokes=Array.isArray(x.strokes)?x.strokes.slice(-2500):[];
+ x.fills=Array.isArray(x.fills)?x.fills.slice(-500):[];
+ x.updatedVersion=(Number(x.updatedVersion)||0)+1;
  return x;
 }
 function persistDrawRoom(g,immediate=false){
  if(!dbPool||!g||g.type!=='draw'||g.phase==='finished')return;
- const run=async()=>{try{if(!(await dbReady))return;const state=drawDbSnapshot(g);await dbPool.query('INSERT INTO saha_draw_rooms(code,state,updated_at) VALUES($1,$2,NOW()) ON CONFLICT(code) DO UPDATE SET state=EXCLUDED.state,updated_at=NOW()',[g.code,state]);}catch(e){console.error('Draw DB save failed:',e.message)}};
+ const run=async()=>{try{if(!(await ensureDrawDb()))return;const state=drawDbSnapshot(g);await dbPool.query('INSERT INTO saha_draw_rooms(code,state,updated_at) VALUES($1,$2,NOW()) ON CONFLICT(code) DO UPDATE SET state=EXCLUDED.state,updated_at=NOW()',[g.code,state]);}catch(e){console.error('Draw DB save failed:',e.message)}};
  if(immediate){clearTimeout(drawDbTimers.get(g.code));drawDbTimers.delete(g.code);void run();return;}
  if(drawDbTimers.has(g.code))return;
  drawDbTimers.set(g.code,setTimeout(()=>{drawDbTimers.delete(g.code);void run()},1200));
@@ -482,7 +495,7 @@ async function loadDrawRoomFromDb(code){
  const wanted=clean(code);
  if(!/^E\d{3}$/.test(wanted))return null;
  try{
-  if(!(await dbReady))return null;
+  if(!(await ensureDrawDb()))return null;
   const r=await dbPool.query({
    text:`SELECT state FROM saha_draw_rooms WHERE UPPER(code)=UPPER($1) OR UPPER(COALESCE(state->>'code',''))=UPPER($1) ORDER BY updated_at DESC LIMIT 1`,
    values:[wanted],
@@ -498,14 +511,30 @@ async function loadDrawRoomFromDb(code){
 }
 async function restoreDrawRoomsFromDb(){
  if(!dbPool)return;
- try{if(!(await dbReady))return;const r=await dbPool.query('SELECT code,state FROM saha_draw_rooms');let count=0;for(const row of r.rows){const g=row.state;if(!g||g.type!=='draw'||!g.code||g.phase==='finished'||!Array.isArray(g.players))continue;g.players.forEach(p=>{p.online=false;p.socketId=null;p.disconnectedAt=p.disconnectedAt||Date.now()});games.set(g.code,g);count++;}console.log(`Restored ${count} draw rooms from Postgres`);}catch(e){console.error('Draw DB restore failed:',e.message)}}
-function removeDrawRoomFromDb(g){if(!dbPool||!g?.code)return;void dbReady.then(ok=>ok?dbPool.query('DELETE FROM saha_draw_rooms WHERE code=$1',[g.code]).catch(e=>console.error('Draw DB delete failed:',e.message)):null)}
+ try{if(!(await ensureDrawDb()))return;const r=await dbPool.query('SELECT code,state FROM saha_draw_rooms');let count=0;for(const row of r.rows){const g=row.state;if(!g||g.type!=='draw'||!g.code||g.phase==='finished'||!Array.isArray(g.players))continue;g.players.forEach(p=>{p.online=false;p.socketId=null;p.disconnectedAt=p.disconnectedAt||Date.now()});games.set(g.code,g);count++;}console.log(`Restored ${count} draw rooms from Postgres`);}catch(e){console.error('Draw DB restore failed:',e.message)}}
+function removeDrawRoomFromDb(g){if(!dbPool||!g?.code)return;void ensureDrawDb().then(ok=>ok?dbPool.query('DELETE FROM saha_draw_rooms WHERE code=$1',[g.code]).catch(e=>console.error('Draw DB delete failed:',e.message)):null)}
 
 function drawRoom(mode){return {type:'draw',code:makeCode('draw',mode),mode:mode==='display'?'display':'players',players:[],hostId:null,phase:'lobby',round:0,maxRounds:10,turnSec:60,style:'normal',difficulty:'mixed',showGuesses:true,drawerIds:[],word:'',wordHint:'',strokes:[],guesses:[],solvedBy:[],roundWinner:null,roundScores:{},scores:{},usedWords:[],roundStartedAt:0,roundEndsAt:0,roundResult:null,finishedAt:0,turnCursor:0,fills:[],wordChoices:[],wordChoiceUntil:0}}
 function drawPublic(g,forSocket){const me=forSocket?.data?.pid||null;const host=g.hostId===me;const drawer=g.drawerIds.includes(me);const players=g.players.map(p=>{const live=!!(p.socketId&&io.sockets.sockets.get(p.socketId)?.connected);return {id:p.id,name:p.name,avatar:p.avatar||'',online:live,score:g.scores[p.id]||0,isDrawer:g.drawerIds.includes(p.id)}});return {type:'draw',code:g.code,mode:g.mode,phase:g.phase,round:g.round,maxRounds:g.maxRounds,turnSec:g.turnSec,style:g.style,difficulty:g.difficulty,showGuesses:g.showGuesses!==false,players,scores:g.scores,drawerIds:g.drawerIds,drawer:drawer,word:drawer?g.word:null,wordHint:drawer?g.wordHint:'',wordChoices:drawer&&g.phase==='wordSelect'?(g.wordChoices||[]):[],wordChoiceUntil:drawer&&g.phase==='wordSelect'?g.wordChoiceUntil:0,strokes:g.strokes,fills:g.fills||[],guesses:g.guesses.map(x=>({player:x.player,answer:(g.showGuesses!==false||drawer)&&!x.correct?x.answer:null,correct:x.correct,points:x.points||0,place:x.place||null,at:x.at})),solvedBy:g.solvedBy,roundWinner:g.roundWinner,roundScores:g.roundScores,roundResult:g.roundResult,roundEndsAt:g.roundEndsAt,hostId:g.hostId,myPlayerId:me||null,isHost:host,roomLocked:!!g.roomLocked,roomMaxPlayers:g.roomMaxPlayers||20}}
 function broadcastDraw(g){if(g.phase==='finished'&&!g.finishedAt)g.finishedAt=Date.now();const room=io.sockets.adapter.rooms.get(g.code);if(room){for(const sid of room){const sock=io.sockets.sockets.get(sid);if(sock)sock.emit('draw:state',drawPublic(g,sock))}}persistGames()}
 function drawChooseWord(g,choice){const pool=g.difficulty==='easy'?drawWords.سهلة:g.difficulty==='medium'?drawWords.متوسطة:g.difficulty==='hard'?drawWords.صعبة:drawAllWords;if(choice&&pool.includes(choice)&&!g.usedWords.includes(choice))return choice;const available=pool.filter(w=>!g.usedWords.includes(w));const source=available.length?available:pool;return source[crypto.randomInt(source.length)]}
 function drawBuildChoices(g){const pool=g.difficulty==='easy'?drawWords.سهلة:g.difficulty==='medium'?drawWords.متوسطة:g.difficulty==='hard'?drawWords.صعبة:drawAllWords;const available=pool.filter(w=>!g.usedWords.includes(w));const source=available.length>=3?available:pool;const out=[];while(out.length<3){const w=source[crypto.randomInt(source.length)];if(!out.includes(w))out.push(w)}return out}
+function drawPickPlayers(g){
+  const online=(g.players||[]).filter(p=>p.online!==false&&p.sessionToken&&!String(p.sessionToken).startsWith('REVOKED-'));
+  if(online.length<2){g.drawerIds=[];return false;}
+  if(g.turnCursor>=online.length)g.turnCursor=0;
+  if(g.style==='together'){
+    const first=online[g.turnCursor%online.length];
+    const second=online[(g.turnCursor+1)%online.length];
+    g.drawerIds=[first.id,second.id].filter((id,i,a)=>id&&a.indexOf(id)===i);
+    g.turnCursor=(g.turnCursor+2)%online.length;
+  }else{
+    const drawer=online[g.turnCursor%online.length];
+    g.drawerIds=drawer?[drawer.id]:[];
+    g.turnCursor=(g.turnCursor+1)%online.length;
+  }
+  return g.drawerIds.length>0;
+}
 function drawSetWordAndStart(g,choice){if(g.phase!=='wordSelect')return;const w=drawChooseWord(g,choice);g.word=w;g.usedWords.push(w);g.wordChoices=[];g.wordChoiceUntil=0;g.wordHint=w.length>8?w.slice(0,2)+'…':'•'.repeat(Math.max(2,Math.min(5,w.replace(/\s/g,'').length)));g.phase='drawing';g.roundStartedAt=Date.now();g.roundEndsAt=Date.now()+g.turnSec*1000;broadcastDraw(g);persistDrawRoom(g,true);const round=g.round;setTimeout(()=>{if(g.phase==='drawing'&&g.round===round&&g.roundEndsAt<=Date.now())drawEndRound(g,'timeout')},g.turnSec*1000+150)}
 function drawStartRound(g){if(g.round>=g.maxRounds){g.phase='finished';g.finishedAt=Date.now();return broadcastDraw(g)}if(!drawPickPlayers(g))return;g.round++;g.word='';g.wordHint='';g.wordChoices=drawBuildChoices(g);g.wordChoiceUntil=Date.now()+15000;g.strokes=[];g.fills=[];g.guesses=[];g.solvedBy=[];g.roundWinner=null;g.roundScores={};g.roundResult=null;g.phase='wordSelect';g.roundStartedAt=Date.now();g.roundEndsAt=0;broadcastDraw(g);const round=g.round;setTimeout(()=>{if(g.phase==='wordSelect'&&g.round===round){drawSetWordAndStart(g,g.wordChoices[crypto.randomInt(g.wordChoices.length)])}},15000)}
 function drawEndRound(g,reason){if(g.phase!=='drawing')return;g.phase='roundResult';const solved=(g.solvedBy||[]).map((id,i)=>({id,name:g.players.find(p=>p.id===id)?.name||'لاعب',points:g.roundScores?.[id]||0,place:i+1}));g.roundResult={reason,answer:g.word,winner:solved[0]||null,winners:solved};broadcastDraw(g);persistDrawRoom(g,true);const round=g.round;setTimeout(()=>{if(g.phase==='roundResult'&&g.round===round){if(g.round>=g.maxRounds){g.phase='finished';g.finishedAt=Date.now();broadcastDraw(g);removeDrawRoomFromDb(g)}else{drawStartRound(g);persistDrawRoom(g,true)}}},3200)}
@@ -969,10 +998,10 @@ function scheduleBombTurn(g){}
     s.emit('draw:state',drawPublic(g,s));
     persistDrawRoom(g,true);
   });
- s.on('draw:stroke',({points,color,width,strokeId,append}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;const pts=Array.isArray(points)?points.slice(0,80).map(p=>({x:Math.max(0,Math.min(1,Number(p.x)||0)),y:Math.max(0,Math.min(1,Number(p.y)||0))})).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)):[];if(!pts.length)return;const id=String(strokeId||'').slice(0,80);let stroke=id&&append?g.strokes.find(x=>x.strokeId===id&&x.by===s.data.pid):null;if(stroke){const last=stroke.points?.[stroke.points.length-1];const add=last&&pts[0]&&last.x===pts[0].x&&last.y===pts[0].y?pts.slice(1):pts;stroke.points=(stroke.points||[]).concat(add).slice(-4000);stroke.at=Date.now();io.to(g.code).emit('draw:stroke',{...stroke,append:true})}else{stroke={points:pts,color:String(color||'#111827').slice(0,20),width:Math.max(1,Math.min(40,Number(width)||5)),by:s.data.pid,at:Date.now(),strokeId:id||crypto.randomBytes(8).toString('hex')};g.strokes.push(stroke);io.to(g.code).emit('draw:stroke',stroke)}});
- s.on('draw:fill',({x,y,color}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;const fill={x:Math.max(0,Math.min(1,Number(x)||0)),y:Math.max(0,Math.min(1,Number(y)||0)),color:String(color||'#111827').slice(0,20),by:s.data.pid,at:Date.now()};g.fills=g.fills||[];g.fills.push(fill);io.to(g.code).emit('draw:fill',fill)});
- s.on('draw:undo',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;const mine=[...(g.strokes||[]).map((x,i)=>({...x,_kind:'stroke',_i:i})),...(g.fills||[]).map((x,i)=>({...x,_kind:'fill',_i:i}))].filter(x=>x.by===s.data.pid).sort((a,b)=>(b.at||0)-(a.at||0));const last=mine[0];if(!last)return;if(last._kind==='stroke')g.strokes.splice(last._i,1);else g.fills.splice(last._i,1);io.to(g.code).emit('draw:sync',{strokes:g.strokes,fills:g.fills||[]})});
- s.on('draw:clear',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;g.strokes=[];g.fills=[];io.to(g.code).emit('draw:sync',{strokes:[],fills:[]})});
+ s.on('draw:stroke',({points,color,width,strokeId,append}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;const pts=Array.isArray(points)?points.slice(0,80).map(p=>({x:Math.max(0,Math.min(1,Number(p.x)||0)),y:Math.max(0,Math.min(1,Number(p.y)||0))})).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)):[];if(!pts.length)return;const id=String(strokeId||'').slice(0,80);let stroke=id&&append?g.strokes.find(x=>x.strokeId===id&&x.by===s.data.pid):null;if(stroke){const last=stroke.points?.[stroke.points.length-1];const add=last&&pts[0]&&last.x===pts[0].x&&last.y===pts[0].y?pts.slice(1):pts;stroke.points=(stroke.points||[]).concat(add).slice(-4000);stroke.at=Date.now();io.to(g.code).emit('draw:stroke',{...stroke,append:true})}else{stroke={points:pts,color:String(color||'#111827').slice(0,20),width:Math.max(1,Math.min(40,Number(width)||5)),by:s.data.pid,at:Date.now(),strokeId:id||crypto.randomBytes(8).toString('hex')};g.strokes.push(stroke);io.to(g.code).emit('draw:stroke',stroke);persistDrawRoom(g)}});
+ s.on('draw:fill',({x,y,color}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;const fill={x:Math.max(0,Math.min(1,Number(x)||0)),y:Math.max(0,Math.min(1,Number(y)||0)),color:String(color||'#111827').slice(0,20),by:s.data.pid,at:Date.now()};g.fills=g.fills||[];g.fills.push(fill);io.to(g.code).emit('draw:fill',fill);persistDrawRoom(g)});
+ s.on('draw:undo',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;const mine=[...(g.strokes||[]).map((x,i)=>({...x,_kind:'stroke',_i:i})),...(g.fills||[]).map((x,i)=>({...x,_kind:'fill',_i:i}))].filter(x=>x.by===s.data.pid).sort((a,b)=>(b.at||0)-(a.at||0));const last=mine[0];if(!last)return;if(last._kind==='stroke')g.strokes.splice(last._i,1);else g.fills.splice(last._i,1);io.to(g.code).emit('draw:sync',{strokes:g.strokes,fills:g.fills||[]});persistDrawRoom(g,true)});
+ s.on('draw:clear',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;g.strokes=[];g.fills=[];io.to(g.code).emit('draw:sync',{strokes:[],fills:[]});persistDrawRoom(g,true)});
  s.on('draw:guess',({answer}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||g.drawerIds.includes(s.data?.pid))return;const p=g.players.find(x=>x.id===s.data?.pid);const submitted=String(answer||'').trim().slice(0,60);if(!p||!submitted)return;if(g.guesses.some(x=>x.playerId===p.id&&x.correct))return;const correct=smart(submitted,g.word);const place=correct?(g.solvedBy.length+1):null;const pointsTable=[25,21,18,15,12,10,8,6,5,4,3,2,1];const points=correct?(pointsTable[place-1]||1):0;g.guesses.push({playerId:p.id,player:p.name,answer:submitted,correct,points,place,at:Date.now()});io.to(g.code).emit('draw:guessFeedback',{player:p.name,correct,points,place});if(correct){g.solvedBy.push(p.id);g.roundScores[p.id]=points;g.scores[p.id]=(g.scores[p.id]||0)+points;io.to(g.code).emit('draw:correct',{player:p.name,points,place});const guessers=g.players.filter(x=>x.online!==false&&!g.drawerIds.includes(x.id)).length;if(g.solvedBy.length>=guessers)drawEndRound(g,'solved');else broadcastDraw(g)}else broadcastDraw(g)});
  s.on('draw:next',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='roundResult'||(s.data?.pid!==g.hostId&&s.data?.role!=='display'))return;if(g.round>=g.maxRounds){g.phase='finished';g.finishedAt=Date.now();broadcastDraw(g);removeDrawRoomFromDb(g)}else{drawStartRound(g);persistDrawRoom(g,true)}});
  s.on('draw:restart',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.hostId!==s.data?.pid||g.phase!=='finished')return;g.phase='lobby';g.round=0;g.turnCursor=0;g.usedWords=[];g.scores={};g.strokes=[];g.fills=[];g.roundResult=null;g.finishedAt=0;g.wordChoices=[];g.wordChoiceUntil=0;broadcastDraw(g);persistDrawRoom(g,true)});
@@ -1009,7 +1038,9 @@ setInterval(()=>{const now=Date.now();for(const [code,g] of games){const hasRece
 function restorePersistedRooms(){try{if(!fs.existsSync(SESSION_FILE))return;const arr=JSON.parse(fs.readFileSync(SESSION_FILE,'utf8'));if(!Array.isArray(arr))return;const now=Date.now();for(const g of arr){if(!g||!g.code||g.phase==='finished'||!Array.isArray(g.players))continue;g.players.forEach(p=>{p.online=false;p.socketId=null;p.disconnectedAt=p.disconnectedAt||now});if(g.hostId&&!g.players.some(p=>p.id===g.hostId))g.hostId=g.players.find(p=>p.sessionToken&&!String(p.sessionToken).startsWith('REVOKED-'))?.id||null;games.set(g.code,g)}console.log(`Restored ${games.size} active rooms`)}catch(e){console.error('session restore failed',e.message)}}
 restorePersistedRooms();
 const PORT=Number(process.env.PORT)||3000;
+// HTTP/Socket.IO becomes reachable first. Postgres restore is deliberately best-effort
+// and never allowed to hold Render's process startup hostage.
 server.listen(PORT,'0.0.0.0',()=>{
   console.log('Arena ready on '+PORT);
-  void restoreDrawRoomsFromDb().catch(e=>console.error('Draw restore after listen failed:',e.message));
+  setImmediate(()=>restoreDrawRoomsFromDb().catch(e=>console.error('Draw restore after listen failed:',e.message)));
 });
