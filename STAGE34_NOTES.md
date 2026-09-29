@@ -1,0 +1,1 @@
+Stage 34: fixed host room controls at top-left and hid the large room panel from non-hosts; repaired circular avatar crop; Draw now offers 3 word choices, selectable difficulty, >3000 drawable terms, floating answer history for all players, transparent 3-second answer flash, and faster drawing preview without repeated flood-fill work.
