@@ -931,7 +931,33 @@ function scheduleBombTurn(g){}
 
  s.on('draw:setSettings',({style,difficulty,rounds,turnSec,showGuesses}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='lobby'||s.data?.pid!==g.hostId)return;if(['normal','together'].includes(style))g.style=style;if(['mixed','easy','medium','hard'].includes(difficulty))g.difficulty=difficulty;if(Number.isFinite(+rounds))g.maxRounds=Math.max(3,Math.min(20,+rounds));if(Number.isFinite(+turnSec))g.turnSec=Math.max(15,Math.min(120,+turnSec));if(showGuesses!==undefined)g.showGuesses=!!showGuesses;broadcastDraw(g);persistDrawRoom(g,true)});
  s.on('draw:chooseWord',({word}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='wordSelect'||!g.drawerIds.includes(s.data?.pid))return;const choice=String(word||'').trim();if(!choice||!(g.wordChoices||[]).includes(choice))return;drawSetWordAndStart(g,choice);persistDrawRoom(g,true)});
-  s.on('draw:start',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='lobby')return;if(!g.hostId)g.hostId=s.data?.pid||null;if(g.hostId!==s.data?.pid)return;g.players.forEach(p=>{const sock=p.socketId?io.sockets.sockets.get(p.socketId):null;p.online=!!(sock&&sock.connected);if(p.online)p.disconnectedAt=null;else if(p.disconnectedAt==null)p.disconnectedAt=Date.now()});const room=io.sockets.adapter.rooms.get(g.code)||new Set();const onlineSockets=[...room].map(id=>io.sockets.sockets.get(id)).filter(sock=>sock?.connected&&sock.data?.game===g.code&&sock.data?.role==='player');onlineSockets.forEach(sock=>{const p=g.players.find(x=>x.id===sock.data?.pid);if(p){p.socketId=sock.id;p.online=true;p.disconnectedAt=null}});const online=g.players.filter(p=>p.online===true).length;if(online<2){s.emit('errorMsg',`تحتاج لاعبين متصلين على الأقل — الموجود الآن ${online}`);broadcastDraw(g);return}drawStartRound(g);persistDrawRoom(g,true)});
+  s.on('draw:start',()=>{
+    const g=games.get(s.data?.game);
+    if(!g||g.type!=='draw'||g.phase!=='lobby')return;
+    // Keep the host/player socket state authoritative. Some mobile reconnects can
+    // leave the Socket.IO room membership one tick behind while the UI already
+    // shows the player as connected. Re-attach before counting online players.
+    if(!g.hostId)g.hostId=s.data?.pid||null;
+    const hostPlayer=g.players.find(p=>p.id===g.hostId);
+    if(hostPlayer&&s.data?.pid!==hostPlayer.id){
+      s.data.game=g.code;s.data.role='player';s.data.pid=hostPlayer.id;s.data.sessionToken=hostPlayer.sessionToken;s.data.team=hostPlayer.team;s.join(g.code);
+    }else if(s.data?.pid===g.hostId){
+      s.join(g.code);
+      s.data.game=g.code;s.data.role='player';
+    }
+    if(g.hostId!==s.data?.pid)return;
+    g.players.forEach(p=>{const sock=p.socketId?io.sockets.sockets.get(p.socketId):null;p.online=!!(sock&&sock.connected);if(p.online)p.disconnectedAt=null;else if(p.disconnectedAt==null)p.disconnectedAt=Date.now()});
+    const room=io.sockets.adapter.rooms.get(g.code)||new Set();
+    const onlineSockets=[...room].map(id=>io.sockets.sockets.get(id)).filter(sock=>sock?.connected&&sock.data?.game===g.code&&sock.data?.role==='player');
+    onlineSockets.forEach(sock=>{const p=g.players.find(x=>x.id===sock.data?.pid);if(p){p.socketId=sock.id;p.online=true;p.disconnectedAt=null}});
+    const online=g.players.filter(p=>p.online===true).length;
+    if(online<2){s.emit('errorMsg',`تحتاج لاعبين متصلين على الأقل — الموجود الآن ${online}`);s.emit('draw:state',drawPublic(g,s));broadcastDraw(g);return}
+    drawStartRound(g);
+    // Send the new state directly to the starter as well as broadcasting to the room.
+    // This removes the mobile race where the UI remains on the lobby screen.
+    s.emit('draw:state',drawPublic(g,s));
+    persistDrawRoom(g,true);
+  });
  s.on('draw:stroke',({points,color,width,strokeId,append}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;const pts=Array.isArray(points)?points.slice(0,80).map(p=>({x:Math.max(0,Math.min(1,Number(p.x)||0)),y:Math.max(0,Math.min(1,Number(p.y)||0))})).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)):[];if(!pts.length)return;const id=String(strokeId||'').slice(0,80);let stroke=id&&append?g.strokes.find(x=>x.strokeId===id&&x.by===s.data.pid):null;if(stroke){const last=stroke.points?.[stroke.points.length-1];const add=last&&pts[0]&&last.x===pts[0].x&&last.y===pts[0].y?pts.slice(1):pts;stroke.points=(stroke.points||[]).concat(add).slice(-4000);stroke.at=Date.now();io.to(g.code).emit('draw:stroke',{...stroke,append:true})}else{stroke={points:pts,color:String(color||'#111827').slice(0,20),width:Math.max(1,Math.min(40,Number(width)||5)),by:s.data.pid,at:Date.now(),strokeId:id||crypto.randomBytes(8).toString('hex')};g.strokes.push(stroke);io.to(g.code).emit('draw:stroke',stroke)}});
  s.on('draw:fill',({x,y,color}={})=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;const fill={x:Math.max(0,Math.min(1,Number(x)||0)),y:Math.max(0,Math.min(1,Number(y)||0)),color:String(color||'#111827').slice(0,20),by:s.data.pid,at:Date.now()};g.fills=g.fills||[];g.fills.push(fill);io.to(g.code).emit('draw:fill',fill)});
  s.on('draw:undo',()=>{const g=games.get(s.data?.game);if(!g||g.type!=='draw'||g.phase!=='drawing'||!g.drawerIds.includes(s.data?.pid))return;const mine=[...(g.strokes||[]).map((x,i)=>({...x,_kind:'stroke',_i:i})),...(g.fills||[]).map((x,i)=>({...x,_kind:'fill',_i:i}))].filter(x=>x.by===s.data.pid).sort((a,b)=>(b.at||0)-(a.at||0));const last=mine[0];if(!last)return;if(last._kind==='stroke')g.strokes.splice(last._i,1);else g.fills.splice(last._i,1);io.to(g.code).emit('draw:sync',{strokes:g.strokes,fills:g.fills||[]})});
