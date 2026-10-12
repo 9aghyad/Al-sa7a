@@ -63,7 +63,7 @@ function playClip(clip){playingClip=clip.id;const cv=$('wave');drawWave(cv,false
 function startGame(){const rounds=Number($('rounds')?.value)||7,category=$('category')?.value||'mixed';socket.emit('mimic:settings',{code,rounds,category});socket.emit('mimic:start',{code})}
 function nextClip(){socket.emit('mimic:nextClip',{code})}
 function nextRound(){socket.emit('mimic:nextRound',{code})}
-function shareCode(){if(navigator.share)navigator.share({title:'قلّدها - الساحة',text:'انضم لغرفة قلّدها: '+code,url:location.href}).catch(()=>{});else navigator.clipboard?.writeText(code).then(()=>toast('تم نسخ كود الغرفة')).catch(()=>toast('كود الغرفة: '+code))}
+function shareCode(){const url=location.origin+'/player?code='+encodeURIComponent(code);if(navigator.share)navigator.share({title:'قلّدها - الساحة',text:'انضم لغرفة قلّدها: '+code,url}).catch(()=>{});else navigator.clipboard?.writeText(code).then(()=>toast('تم نسخ كود الغرفة')).catch(()=>toast('كود الغرفة: '+code))}
 function createDirect(){const n=($('nameInput')?.value||'لاعب').trim()||'لاعب';playerName=n;const rounds=Number($('roundInput')?.value)||7;socket.emit('room:create',{game:'mimic',mode:'players',name:n,maxRounds:rounds,rounds,category:'mixed'});creating=true}
 function joinDirect(){const n=($('nameInput')?.value||'لاعب').trim()||'لاعب',c=($('codeInput')?.value||'').trim().toUpperCase();if(!c)return toast('اكتب كود الغرفة');playerName=n;code=c;socket.emit('room:join',{code:c,name:n,sessionToken:token});render()}
 function restartLobby(){location.href='/games/mimic/'}
