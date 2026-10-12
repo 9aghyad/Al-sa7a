@@ -100,6 +100,30 @@ input,select{background:#28171b;border:2px solid #79504a;border-radius:12px;colo
 @media(max-height:650px){.lobbyRoom{min-height:190px}.avatarStage{padding-top:10px;padding-bottom:8px}.character{height:78px}.lobbyControls{gap:6px}.lobbyFootnote{display:none}}
 
 .copyableCode{cursor:pointer;user-select:all}.roomQr{width:82px;height:82px;object-fit:contain;background:#fff;padding:4px;border-radius:8px;border:1px solid #d9c7b5;flex:none}.lobbyCode{flex-wrap:wrap}.lobbyCode button{white-space:nowrap}@media(max-width:560px){.roomQr{width:66px;height:66px}.lobbyHud{padding:8px;gap:7px}.lobbyCode{gap:6px;padding:6px}.lobbyCode strong{letter-spacing:2px}}
+
+/* Keep microphone and start controls visible in the redesigned lobby on mobile */
+.lobbyWorld{height:100%;min-height:0;flex:1 1 0;overflow-y:auto!important;overscroll-behavior:contain}
+.lobbyRoom{flex:0 0 auto;min-height:190px}
+.avatarStage{min-height:115px;padding:14px 10px 10px}
+.character{height:88px;width:62px}
+.lobbyControls{position:relative;z-index:5;padding:8px 12px 12px;background:linear-gradient(180deg,#3b2224,#2e1a1d)}
+.micCard{flex-wrap:wrap}
+@media(max-height:600px) and (orientation:landscape){
+ .lobbyWorld{height:calc(100dvh - 70px)}
+ .lobbyHud{padding:6px 10px}
+ .lobbyRoom{min-height:155px}
+ .lobbyBanner{margin-top:5px;padding:6px 10px}
+ .avatarStage{min-height:85px;padding:8px}
+ .character{height:64px;width:48px}
+ .lobbyControls{gap:6px;padding:6px 10px 10px}
+ .micCard{padding:6px 9px;gap:8px}
+ .micOrb{width:30px;height:30px;font-size:18px}
+ .micCopy b{font-size:11px}.micCopy small{font-size:9px}
+ .lobbySettings{gap:6px}
+ .lobbySettings label{font-size:10px}
+ .lobbyFootnote{margin:2px 0;font-size:9px}
+}
+
 </style>
 </head>
 <body>
