@@ -109,7 +109,8 @@ input,select{background:#28171b;border:2px solid #79504a;border-radius:12px;colo
 'use strict';
 const $=id=>document.getElementById(id);
 const params=new URLSearchParams(location.search);
-let code=(params.get('code')||'').toUpperCase(),token=params.get('sessionToken')||'',playerName=params.get('name')||'',state=null,stream=null,recorder=null,chunks=[],audioCtx=null,analyser=null,waveRAF=0,handledListen=0,handledRecord=0,playingClip='',clipAudio=null,revealedScoreFor='',refFeatures=null,localMicReady=false,creating=false;
+const normalizeRoomCode=v=>String(v||'').normalize('NFKC').replace(/[\s\-‐‑‒–—]+/g,'').toUpperCase();
+let code=normalizeRoomCode(params.get('code')||''),token=params.get('sessionToken')||'',playerName=params.get('name')||'',state=null,stream=null,recorder=null,chunks=[],audioCtx=null,analyser=null,waveRAF=0,handledListen=0,handledRecord=0,playingClip='',clipAudio=null,revealedScoreFor='',refFeatures=null,localMicReady=false,creating=false;
 const socket=io({reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:500,timeout:10000});
 const sounds={meow:{title:'مواء قطة',icon:'🐈',kind:'sweep'},bark:{title:'نباح كلب',icon:'🐕',kind:'barks'},rooster:{title:'صياح ديك',icon:'🐓',kind:'chirp'},siren:{title:'صفارة إنذار',icon:'🚨',kind:'siren'},engine:{title:'محرك سيارة',icon:'🏎️',kind:'engine'},laugh:{title:'ضحكة شريرة',icon:'😈',kind:'laugh'},sneeze:{title:'عطسة قوية',icon:'🤧',kind:'sneeze'},robot:{title:'صوت روبوت',icon:'🤖',kind:'robot'}};
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -153,7 +154,7 @@ function nextClip(){socket.emit('mimic:nextClip',{code})}
 function nextRound(){socket.emit('mimic:nextRound',{code})}
 function shareCode(){const url=location.origin+'/games/mimic/?code='+encodeURIComponent(code);if(navigator.share)navigator.share({title:'قلّدها - الساحة',text:'انضم لغرفة قلّدها باستخدام الرمز: '+code,url}).catch(()=>{});else if(navigator.clipboard?.writeText)navigator.clipboard.writeText(url).then(()=>toast('تم نسخ رابط الانضمام')).catch(()=>toast('كود الغرفة: '+code));else toast('كود الغرفة: '+code+' — افتح /games/mimic/ ثم أدخل الرمز')}
 function createDirect(){const n=($('nameInput')?.value||'لاعب').trim()||'لاعب';playerName=n;const rounds=Number($('roundInput')?.value)||7;socket.emit('room:create',{game:'mimic',mode:'players',name:n,maxRounds:rounds,rounds,category:'mixed'});creating=true}
-function joinDirect(){const n=($('nameInput')?.value||'لاعب').trim()||'لاعب',c=($('codeInput')?.value||'').replace(/[\\s\\-]+/g,'').trim().toUpperCase();if(!c)return toast('اكتب كود الغرفة');if(!/^[A-Z0-9]{3,6}$/.test(c))return toast('تأكد من كتابة رمز الغرفة بشكل صحيح');playerName=n;code=c;socket.emit('room:join',{code:c,name:n,sessionToken:token});render()}
+function joinDirect(){const n=($('nameInput')?.value||'لاعب').trim()||'لاعب',c=normalizeRoomCode($('codeInput')?.value||'');if(!c)return toast('اكتب كود الغرفة مثل Q123');if(!/^Q\d{3}$/.test(c))return toast('رمز قلّدها يجب أن يبدأ بحرف Q ويتبعه 3 أرقام، مثل Q123');playerName=n;code=c;token='';socket.emit('room:join',{code:c,name:n});render()}
 function restartLobby(){location.href='/games/mimic/'}
 window.activateMic=activateMic;window.startGame=startGame;window.nextClip=nextClip;window.nextRound=nextRound;window.shareCode=shareCode;window.playCurrentClip=playCurrentClip;window.createDirect=createDirect;window.joinDirect=joinDirect;window.restartLobby=restartLobby;
 socket.on('room:created',x=>{code=x.code;token=x.sessionToken||token;location.href='/games/mimic/?code='+encodeURIComponent(code)+'&sessionToken='+encodeURIComponent(token)+'&name='+encodeURIComponent(playerName||'لاعب')});
