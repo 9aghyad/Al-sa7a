@@ -280,7 +280,7 @@ function unifiedCreate(t){
  const n=(document.getElementById('unifiedName')?.value||getProfile().name||'لاعب').trim().slice(0,20)||'لاعب';
  if(document.getElementById('unifiedName')) document.getElementById('unifiedName').value=n;
  const p=getProfile();p.name=n;localStorage.setItem(PROFILE_KEY,JSON.stringify(p));
- pendingGame=t; window.selMode=(t==='draw'?(window.drawMode||'players'):(t==='market'?'players':(t==='family'?'3':(t==='million'?'players':'players')))); window.selRounds=(t==='family'?(window.selRounds||10):10);
+ pendingGame=t; window.selMode=(t==='draw'?(window.drawMode||'players'):(t==='market'?'players':(t==='family'?'3':(t==='million'?'players':'players')))); window.selRounds=(t==='family'?(window.selRounds||10):(t==='mimic'?7:10));
  sound('click'); socket.emit('room:create',{game:t,mode:window.selMode,maxRounds:window.selRounds,rounds:window.selRounds,name:n,avatar:p.avatar||''});
  set(`<div class="unifiedWaiting"><div class="unifiedSpinner">🏟️</div><h1>جاري إنشاء الغرفة…</h1><p>سننقلك مباشرة إلى Lobby اللعبة، وهناك تكمل الإعدادات مع اللاعبين.</p><div class="miniStatus">🔐 يتم إنشاء غرفة آمنة • 📱 جلسة قابلة لإعادة الاتصال</div></div>`);
 }
